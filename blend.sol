@@ -66,29 +66,29 @@ contract LetterCredit {
     
     function buyerUpload(string memory _buyer_document) public payable{
         require(msg.sender == buyer, "Invalid access, only buyer can upload documents");
-	    require(status == contract_status.ON,"Invalid status, status is not ON");
+	require(status == contract_status.ON,"Invalid status, status is not ON");
 	    
-	    //The buyer uploads the document
-	    buyer_document = _buyer_document;
-	    status = contract_status.BUYER_UPLOADED;
+	//The buyer uploads the document
+	buyer_document = _buyer_document;
+	status = contract_status.BUYER_UPLOADED;
 	}
 
     function sellerUpload(string memory _document) public{
         
         //The seller, after the buyer has uploaded the document and the money, upload his document. 
 
-		require(msg.sender == seller,"Invalid access, only seller can upload documents");
-		require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");
+	require(msg.sender == seller,"Invalid access, only seller can upload documents");
+	require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");
 		
-		seller_document = _document;
-		status = contract_status.SELLER_UPLOADED;
+	seller_document = _document;
+	status = contract_status.SELLER_UPLOADED;
 	}
 
     function checkCompliance(bool _compliance) public{
         
         /* Let the fintech update the compliance status upon verification of documents.
         This enables the seller to retrieve the money */
-		require(msg.sender == fintech, "Invalid access, only fintech can review documents");
+	require(msg.sender == fintech, "Invalid access, only fintech can review documents");
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
         uint money = address(this).balance;
@@ -96,20 +96,19 @@ contract LetterCredit {
         compliance = _compliance;
 
         if (compliance) {
+		status = contract_status.DOC_OK; //No discrepancies
             
-            status = contract_status.DOC_OK; //No discrepancies
-            
-            // transfer all the money which is in the contract between seller and fintech
-		    balance[seller] = (money - commission_cost);
-		    balance[fintech] = (money - balance[seller]);
+            	// transfer all the money which is in the contract between seller and fintech
+		balance[seller] = (money - commission_cost);
+		balance[fintech] = (money - balance[seller]);
 		    
         } else {
             
-            status = contract_status.DOC_DEFECT; //discrepancies
+	    	status = contract_status.DOC_DEFECT; //discrepancies
             
-            // transfer all the money which is in the contract between buyer and fintech
-            balance[buyer] = (money - defect_fee);
-		    balance[fintech] = money - balance[buyer];
+            	// transfer all the money which is in the contract between buyer and fintech
+            	balance[buyer] = (money - defect_fee);
+		balance[fintech] = money - balance[buyer];
         }
     }
     
@@ -123,10 +122,10 @@ contract LetterCredit {
 
         address payable recipient = msg.sender;
         
-	    uint amount = balance[recipient];
-		balance[recipient] = 0;
+	uint amount = balance[recipient];
+	balance[recipient] = 0;
 	
-		//works like transfer function but avoid reentrancy
+	//works like transfer function but avoid reentrancy
         (bool success,) = msg.sender.call{value : amount}("");
         require(success);
     }
@@ -141,10 +140,10 @@ contract LetterCredit {
 
         address payable recipient = msg.sender;
 
-		uint amount = balance[recipient];
-		balance[recipient] = 0;
+	uint amount = balance[recipient];
+	balance[recipient] = 0;
  
-		//works like transfer function but avoid reentrancy
+	//works like transfer function but avoid reentrancy
         (bool success,) = msg.sender.call{value : amount}("");
         require(success);
     }
@@ -158,7 +157,7 @@ contract LetterCredit {
         address payable recipient = msg.sender;
         
         uint amount = balance[recipient];
-		balance[recipient] = 0;
+	balance[recipient] = 0;
 		
         (bool success,) = msg.sender.call{value : amount}("");
         require(success);
