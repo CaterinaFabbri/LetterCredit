@@ -25,7 +25,7 @@ contract MoneyHandler {
     
     
     // these arguments are set only once, when deploying the contract
-    constructor (address payable _buyer,  address payable _seller, address _fintech) public {
+    constructor (address payable _buyer,  address payable _seller, address _fintech) public payable{
     /* Stores the addresses of the buyer and of the seller
        and initializes the variables */
        
