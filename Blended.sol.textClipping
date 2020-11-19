@@ -1,0 +1,213 @@
+bplist00—XUTI-Data”_$com.apple.traditional-mac-plain-text_public.utf8-plain-text_public.utf16-plain-textO %pragma solidity >0.5.0 <0.7.0;//"SPDX-License-Identifier: UNLICENSED"/*This contract handles the money part of the transactions:1) receive() -> Let the buyer put the money in the contract (implement installments)2) buyerUpload() -> buyer requests documents (implement Ipfs)3) sellerUpload() -> seller upload requested documents (implement Ipfs)4) checkCompliance() -> Let the Fintech update a bool to signal that all documents are compliant (implement possibility to upload new documents if there are discrepancies)5) money_to_seller() -> Give the seller the possibility of getting the money as soon as the documents are approved6) money_to_Buyer()  -> Let the buyer have the money back if the documents aren't compliant and time expires7) fintech_withdraw() -> Let the fintech withdraw its fees8) check_Contract_Balance() -> Let the fintech update a bool to allow (or stop allowing) the buyer to retrieve the money9) getBalance() -> get the balance of buyer, seller and fintech10) destroycontract() -> fintech possibility to destroy contract*/contract LetterCredit {        // define the addresses of the parties invovled    address payable public buyer;    address payable public seller;    address payable public fintech;        mapping(address => uint) balance;        //define documents to be uploaded    string buyer_document;    string seller_document;        //define all the status that the contract may have    enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT} contract_status status;	    // define the bool that the Fintech will set to True once documents are compliant    bool public compliance;        //define fees held by the fintech company    uint defect_fee; // fee in case of no compliance	uint commission_cost; // fee in case of compliance	    // these arguments are set only once, when deploying the contract    constructor (address payable _buyer,  address payable _seller, address payable _fintech) public payable{                /* Stores the addresses of the buyer and of the seller        and initializes the variables */        buyer = _buyer;        seller = _seller;        fintech = _fintech;        compliance = false;        status = contract_status.ON;        balance[buyer] = 0;        balance[seller] = 0;        balance[fintech] = 0;        commission_cost = 1 ether;        defect_fee = 1 ether;    }        receive() external payable {        //Let the buyer upload the money         require(msg.sender == buyer, 'only buyer can upload money'); // ?????    }        function buyerUpload(string memory _buyer_document) public payable{        require(msg.sender == buyer, "Invalid access, only buyer can upload documents");	    require(status == contract_status.ON,"Invalid status, status is not ON");	    	    //The buyer uploads the document	    buyer_document = _buyer_document;	    status = contract_status.BUYER_UPLOADED;	}    function sellerUpload(string memory _document) public{                //The seller, after the buyer has uploaded the document and the money, upload his document. 		require(msg.sender == seller,"Invalid access, only seller can upload documents");		require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");				seller_document = _document;		status = contract_status.SELLER_UPLOADED;	}    function checkCompliance(bool _compliance) public{                /* Let the fintech update the compliance status upon verification of documents.        This enables the seller to retrieve the money */		require(msg.sender == fintech, "Invalid access, only fintech can review documents");        require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");                uint money = address(this).balance;        compliance = _compliance;        if (compliance) {                        status = contract_status.DOC_OK; //No discrepancies                        // transfer all the money which is in the contract between seller and fintech		    balance[seller] = (money - commission_cost);		    balance[fintech] = (money - balance[seller]);		            } else {                        status = contract_status.DOC_DEFECT; //discrepancies                        // transfer all the money which is in the contract between buyer and fintech            balance[buyer] = (money - defect_fee);		    balance[fintech] = money - balance[buyer];        }    }            function money_to_Buyer() public payable{        /* Let the buyer retrieve the money if documents aren't compliant */                require(msg.sender == buyer, "Only the buyer can decide whether he wants to withdraw or not");        require(balance[msg.sender] > 0, "Need to have money in the contract");        require(status == contract_status.DOC_DEFECT, "Invalid status, status is not DOC_DEFECT");        address payable recipient = msg.sender;        	    uint amount = balance[recipient];		balance[recipient] = 0;			//works like transfer function but avoid reentrancy        (bool success,) = msg.sender.call{value : amount}("");        require(success);    }        function money_to_Seller() public payable{                /* Let the seller retrieve the money if documents are compliant        Note: anyone can call this function*/        require(msg.sender == seller, "Only the seller can decide whether he wants to withdraw or not");        require(balance[msg.sender] > 0, "Need to have money in the contract");        require(status == contract_status.DOC_OK);        address payable recipient = msg.sender;		uint amount = balance[recipient];		balance[recipient] = 0; 		//works like transfer function but avoid reentrancy        (bool success,) = msg.sender.call{value : amount}("");        require(success);    }        function fintech_withdraw()  public payable{                //the fintech can withdraw its commission fees        require(msg.sender == fintech, 'only the fintech can withdraw fees');        require(balance[msg.sender] > 0, "Need to have money in the contract");                address payable recipient = msg.sender;                uint amount = balance[recipient];		balance[recipient] = 0;		        (bool success,) = msg.sender.call{value : amount}("");        require(success);    }        function check_Contract_Balance() public view returns(uint){                /* Give to each of the parties involved the possibility of checking the contract balance */        require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller);        return address(this).balance;    }        function getBalance() public view returns(uint) {        return balance[msg.sender];    }            function destroycontract() public{        require(msg.sender == fintech);        selfdestruct(msg.sender);    }}    /****************************************   draft   **********************************************************/        // define the bool that the Fintech will set to True if documents aren't compliant and    // the buyer gains the possibility of withdrawing the money    //bool public buyer_out;    /*    function FirstInstallment (uint256 amount) external payable {        require(msg.sender == buyer,'only buyer can upload money');        msg.value == amount;    }*/                /*    function FinalInstallment (uint256 amount2) public payable {        require(msg.sender == buyer,'only buyer can upload money');        require(status == contract_status.DOC_OK);        msg.value == amount2;        status = contract_status.END;    }        function allow_buyer_out(bool _boolean) public {                Let the fintech give (or take) the buyer the possibility of withdrawing from         the transaction, if there are relevant discrepancies                 require(msg.sender == fintech);        buyer_out = _boolean;    }*/_ %pragma solidity >0.5.0 <0.7.0;
+//"SPDX-License-Identifier: UNLICENSED"
+
+/*
+This contract handles the money part of the transactions:
+1) receive() -> Let the buyer put the money in the contract (implement installments)
+2) buyerUpload() -> buyer requests documents (implement Ipfs)
+3) sellerUpload() -> seller upload requested documents (implement Ipfs)
+4) checkCompliance() -> Let the Fintech update a bool to signal that all documents are compliant 
+(implement possibility to upload new documents if there are discrepancies)
+5) money_to_seller() -> Give the seller the possibility of getting the money as soon as the documents are approved
+6) money_to_Buyer()  -> Let the buyer have the money back if the documents aren't compliant and time expires
+7) fintech_withdraw() -> Let the fintech withdraw its fees
+8) check_Contract_Balance() -> Let the fintech update a bool to allow (or stop allowing) the buyer to retrieve the money
+9) getBalance() -> get the balance of buyer, seller and fintech
+10) destroycontract() -> fintech possibility to destroy contract
+*/
+
+
+contract LetterCredit {
+    
+    // define the addresses of the parties invovled
+    address payable public buyer;
+    address payable public seller;
+    address payable public fintech;
+    
+    mapping(address => uint) balance;
+    
+    //define documents to be uploaded
+    string buyer_document;
+    string seller_document;
+    
+    //define all the status that the contract may have
+    enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT} contract_status status;
+	
+    // define the bool that the Fintech will set to True once documents are compliant
+    bool public compliance;
+    
+    //define fees held by the fintech company
+    uint defect_fee; // fee in case of no compliance
+	uint commission_cost; // fee in case of compliance
+	
+    // these arguments are set only once, when deploying the contract
+    constructor (address payable _buyer,  address payable _seller, address payable _fintech) public payable{
+        
+        /* Stores the addresses of the buyer and of the seller
+        and initializes the variables */
+        buyer = _buyer;
+        seller = _seller;
+        fintech = _fintech;
+        compliance = false;
+        status = contract_status.ON;
+        balance[buyer] = 0;
+        balance[seller] = 0;
+        balance[fintech] = 0;
+        commission_cost = 1 ether;
+        defect_fee = 1 ether;
+
+    }
+    
+    receive() external payable {
+        //Let the buyer upload the money 
+        require(msg.sender == buyer, 'only buyer can upload money'); // ?????
+    }
+
+    
+    function buyerUpload(string memory _buyer_document) public payable{
+        require(msg.sender == buyer, "Invalid access, only buyer can upload documents");
+	    require(status == contract_status.ON,"Invalid status, status is not ON");
+	    
+	    //The buyer uploads the document
+	    buyer_document = _buyer_document;
+	    status = contract_status.BUYER_UPLOADED;
+	}
+
+    function sellerUpload(string memory _document) public{
+        
+        //The seller, after the buyer has uploaded the document and the money, upload his document. 
+
+		require(msg.sender == seller,"Invalid access, only seller can upload documents");
+		require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");
+		
+		seller_document = _document;
+		status = contract_status.SELLER_UPLOADED;
+	}
+
+    function checkCompliance(bool _compliance) public{
+        
+        /* Let the fintech update the compliance status upon verification of documents.
+        This enables the seller to retrieve the money */
+		require(msg.sender == fintech, "Invalid access, only fintech can review documents");
+        require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
+        
+        uint money = address(this).balance;
+
+        compliance = _compliance;
+
+        if (compliance) {
+            
+            status = contract_status.DOC_OK; //No discrepancies
+            
+            // transfer all the money which is in the contract between seller and fintech
+		    balance[seller] = (money - commission_cost);
+		    balance[fintech] = (money - balance[seller]);
+		    
+        } else {
+            
+            status = contract_status.DOC_DEFECT; //discrepancies
+            
+            // transfer all the money which is in the contract between buyer and fintech
+            balance[buyer] = (money - defect_fee);
+		    balance[fintech] = money - balance[buyer];
+        }
+    }
+    
+    
+    function money_to_Buyer() public payable{
+        /* Let the buyer retrieve the money if documents aren't compliant */
+        
+        require(msg.sender == buyer, "Only the buyer can decide whether he wants to withdraw or not");
+        require(balance[msg.sender] > 0, "Need to have money in the contract");
+        require(status == contract_status.DOC_DEFECT, "Invalid status, status is not DOC_DEFECT");
+
+        address payable recipient = msg.sender;
+        
+	    uint amount = balance[recipient];
+		balance[recipient] = 0;
+	
+		//works like transfer function but avoid reentrancy
+        (bool success,) = msg.sender.call{value : amount}("");
+        require(success);
+    }
+    
+    function money_to_Seller() public payable{
+        
+        /* Let the seller retrieve the money if documents are compliant
+        Note: anyone can call this function*/
+        require(msg.sender == seller, "Only the seller can decide whether he wants to withdraw or not");
+        require(balance[msg.sender] > 0, "Need to have money in the contract");
+        require(status == contract_status.DOC_OK);
+
+        address payable recipient = msg.sender;
+
+		uint amount = balance[recipient];
+		balance[recipient] = 0;
+ 
+		//works like transfer function but avoid reentrancy
+        (bool success,) = msg.sender.call{value : amount}("");
+        require(success);
+    }
+    
+    function fintech_withdraw()  public payable{
+        
+        //the fintech can withdraw its commission fees
+        require(msg.sender == fintech, 'only the fintech can withdraw fees');
+        require(balance[msg.sender] > 0, "Need to have money in the contract");
+        
+        address payable recipient = msg.sender;
+        
+        uint amount = balance[recipient];
+		balance[recipient] = 0;
+		
+        (bool success,) = msg.sender.call{value : amount}("");
+        require(success);
+    }
+    
+    function check_Contract_Balance() public view returns(uint){
+        
+        /* Give to each of the parties involved the possibility of checking the contract balance */
+        require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller);
+        return address(this).balance;
+    }
+    
+    function getBalance() public view returns(uint) {
+        return balance[msg.sender];
+    }
+    
+        function destroycontract() public{
+        require(msg.sender == fintech);
+        selfdestruct(msg.sender);
+    }
+}
+
+
+    /****************************************   draft   **********************************************************/
+    
+    // define the bool that the Fintech will set to True if documents aren't compliant and
+    // the buyer gains the possibility of withdrawing the money
+    //bool public buyer_out;
+
+    /*
+    function FirstInstallment (uint256 amount) external payable {
+        require(msg.sender == buyer,'only buyer can upload money');
+        msg.value == amount;
+    }*/
+    
+        
+    /*
+    function FinalInstallment (uint256 amount2) public payable {
+        require(msg.sender == buyer,'only buyer can upload money');
+        require(status == contract_status.DOC_OK);
+        msg.value == amount2;
+        status = contract_status.END;
+    }
+    
+    function allow_buyer_out(bool _boolean) public {
+        
+        Let the fintech give (or take) the buyer the possibility of withdrawing from 
+        the transaction, if there are relevant discrepancies 
+        
+        require(msg.sender == fintech);
+        buyer_out = _boolean;
+    }*/O@Jp r a g m a   s o l i d i t y   > 0 . 5 . 0   < 0 . 7 . 0 ;   / / " S P D X - L i c e n s e - I d e n t i f i e r :   U N L I C E N S E D "     / *   T h i s   c o n t r a c t   h a n d l e s   t h e   m o n e y   p a r t   o f   t h e   t r a n s a c t i o n s :   1 )   r e c e i v e ( )   - >   L e t   t h e   b u y e r   p u t   t h e   m o n e y   i n   t h e   c o n t r a c t   ( i m p l e m e n t   i n s t a l l m e n t s )   2 )   b u y e r U p l o a d ( )   - >   b u y e r   r e q u e s t s   d o c u m e n t s   ( i m p l e m e n t   I p f s )   3 )   s e l l e r U p l o a d ( )   - >   s e l l e r   u p l o a d   r e q u e s t e d   d o c u m e n t s   ( i m p l e m e n t   I p f s )   4 )   c h e c k C o m p l i a n c e ( )   - >   L e t   t h e   F i n t e c h   u p d a t e   a   b o o l   t o   s i g n a l   t h a t   a l l   d o c u m e n t s   a r e   c o m p l i a n t     ( i m p l e m e n t   p o s s i b i l i t y   t o   u p l o a d   n e w   d o c u m e n t s   i f   t h e r e   a r e   d i s c r e p a n c i e s )   5 )   m o n e y _ t o _ s e l l e r ( )   - >   G i v e   t h e   s e l l e r   t h e   p o s s i b i l i t y   o f   g e t t i n g   t h e   m o n e y   a s   s o o n   a s   t h e   d o c u m e n t s   a r e   a p p r o v e d   6 )   m o n e y _ t o _ B u y e r ( )     - >   L e t   t h e   b u y e r   h a v e   t h e   m o n e y   b a c k   i f   t h e   d o c u m e n t s   a r e n ' t   c o m p l i a n t   a n d   t i m e   e x p i r e s   7 )   f i n t e c h _ w i t h d r a w ( )   - >   L e t   t h e   f i n t e c h   w i t h d r a w   i t s   f e e s   8 )   c h e c k _ C o n t r a c t _ B a l a n c e ( )   - >   L e t   t h e   f i n t e c h   u p d a t e   a   b o o l   t o   a l l o w   ( o r   s t o p   a l l o w i n g )   t h e   b u y e r   t o   r e t r i e v e   t h e   m o n e y   9 )   g e t B a l a n c e ( )   - >   g e t   t h e   b a l a n c e   o f   b u y e r ,   s e l l e r   a n d   f i n t e c h   1 0 )   d e s t r o y c o n t r a c t ( )   - >   f i n t e c h   p o s s i b i l i t y   t o   d e s t r o y   c o n t r a c t   * /       c o n t r a c t   L e t t e r C r e d i t   {                     / /   d e f i n e   t h e   a d d r e s s e s   o f   t h e   p a r t i e s   i n v o v l e d           a d d r e s s   p a y a b l e   p u b l i c   b u y e r ;           a d d r e s s   p a y a b l e   p u b l i c   s e l l e r ;           a d d r e s s   p a y a b l e   p u b l i c   f i n t e c h ;                     m a p p i n g ( a d d r e s s   = >   u i n t )   b a l a n c e ;                     / / d e f i n e   d o c u m e n t s   t o   b e   u p l o a d e d           s t r i n g   b u y e r _ d o c u m e n t ;           s t r i n g   s e l l e r _ d o c u m e n t ;                     / / d e f i n e   a l l   t h e   s t a t u s   t h a t   t h e   c o n t r a c t   m a y   h a v e           e n u m   c o n t r a c t _ s t a t u s   { O N ,   B U Y E R _ U P L O A D E D ,   S E L L E R _ U P L O A D E D ,   D O C _ O K ,   D O C _ D E F E C T }   c o n t r a c t _ s t a t u s   s t a t u s ;   	           / /   d e f i n e   t h e   b o o l   t h a t   t h e   F i n t e c h   w i l l   s e t   t o   T r u e   o n c e   d o c u m e n t s   a r e   c o m p l i a n t           b o o l   p u b l i c   c o m p l i a n c e ;                     / / d e f i n e   f e e s   h e l d   b y   t h e   f i n t e c h   c o m p a n y           u i n t   d e f e c t _ f e e ;   / /   f e e   i n   c a s e   o f   n o   c o m p l i a n c e   	 u i n t   c o m m i s s i o n _ c o s t ;   / /   f e e   i n   c a s e   o f   c o m p l i a n c e   	           / /   t h e s e   a r g u m e n t s   a r e   s e t   o n l y   o n c e ,   w h e n   d e p l o y i n g   t h e   c o n t r a c t           c o n s t r u c t o r   ( a d d r e s s   p a y a b l e   _ b u y e r ,     a d d r e s s   p a y a b l e   _ s e l l e r ,   a d d r e s s   p a y a b l e   _ f i n t e c h )   p u b l i c   p a y a b l e {                                     / *   S t o r e s   t h e   a d d r e s s e s   o f   t h e   b u y e r   a n d   o f   t h e   s e l l e r                   a n d   i n i t i a l i z e s   t h e   v a r i a b l e s   * /                   b u y e r   =   _ b u y e r ;                   s e l l e r   =   _ s e l l e r ;                   f i n t e c h   =   _ f i n t e c h ;                   c o m p l i a n c e   =   f a l s e ;                   s t a t u s   =   c o n t r a c t _ s t a t u s . O N ;                   b a l a n c e [ b u y e r ]   =   0 ;                   b a l a n c e [ s e l l e r ]   =   0 ;                   b a l a n c e [ f i n t e c h ]   =   0 ;                   c o m m i s s i o n _ c o s t   =   1   e t h e r ;                   d e f e c t _ f e e   =   1   e t h e r ;             }                     r e c e i v e ( )   e x t e r n a l   p a y a b l e   {                   / / L e t   t h e   b u y e r   u p l o a d   t h e   m o n e y                     r e q u i r e ( m s g . s e n d e r   = =   b u y e r ,   ' o n l y   b u y e r   c a n   u p l o a d   m o n e y ' ) ;   / /   ? ? ? ? ?           }                       f u n c t i o n   b u y e r U p l o a d ( s t r i n g   m e m o r y   _ b u y e r _ d o c u m e n t )   p u b l i c   p a y a b l e {                   r e q u i r e ( m s g . s e n d e r   = =   b u y e r ,   " I n v a l i d   a c c e s s ,   o n l y   b u y e r   c a n   u p l o a d   d o c u m e n t s " ) ;   	         r e q u i r e ( s t a t u s   = =   c o n t r a c t _ s t a t u s . O N , " I n v a l i d   s t a t u s ,   s t a t u s   i s   n o t   O N " ) ;   	           	         / / T h e   b u y e r   u p l o a d s   t h e   d o c u m e n t   	         b u y e r _ d o c u m e n t   =   _ b u y e r _ d o c u m e n t ;   	         s t a t u s   =   c o n t r a c t _ s t a t u s . B U Y E R _ U P L O A D E D ;   	 }             f u n c t i o n   s e l l e r U p l o a d ( s t r i n g   m e m o r y   _ d o c u m e n t )   p u b l i c {                                     / / T h e   s e l l e r ,   a f t e r   t h e   b u y e r   h a s   u p l o a d e d   t h e   d o c u m e n t   a n d   t h e   m o n e y ,   u p l o a d   h i s   d o c u m e n t .       	 	 r e q u i r e ( m s g . s e n d e r   = =   s e l l e r , " I n v a l i d   a c c e s s ,   o n l y   s e l l e r   c a n   u p l o a d   d o c u m e n t s " ) ;   	 	 r e q u i r e ( s t a t u s = = c o n t r a c t _ s t a t u s . B U Y E R _ U P L O A D E D ,   " I n v a l i d   s t a t u s ,   s t a t u s   i s   n o t   B U Y E R _ U P L O A D E D " ) ;   	 	   	 	 s e l l e r _ d o c u m e n t   =   _ d o c u m e n t ;   	 	 s t a t u s   =   c o n t r a c t _ s t a t u s . S E L L E R _ U P L O A D E D ;   	 }             f u n c t i o n   c h e c k C o m p l i a n c e ( b o o l   _ c o m p l i a n c e )   p u b l i c {                                     / *   L e t   t h e   f i n t e c h   u p d a t e   t h e   c o m p l i a n c e   s t a t u s   u p o n   v e r i f i c a t i o n   o f   d o c u m e n t s .                   T h i s   e n a b l e s   t h e   s e l l e r   t o   r e t r i e v e   t h e   m o n e y   * /   	 	 r e q u i r e ( m s g . s e n d e r   = =   f i n t e c h ,   " I n v a l i d   a c c e s s ,   o n l y   f i n t e c h   c a n   r e v i e w   d o c u m e n t s " ) ;                   r e q u i r e ( s t a t u s   = =   c o n t r a c t _ s t a t u s . S E L L E R _ U P L O A D E D ,   " I n v a l i d   s t a t u s ,   s t a t u s   i s   n o t   S E L L E R _ U P L O A D E D " ) ;                                     u i n t   m o n e y   =   a d d r e s s ( t h i s ) . b a l a n c e ;                     c o m p l i a n c e   =   _ c o m p l i a n c e ;                     i f   ( c o m p l i a n c e )   {                                                     s t a t u s   =   c o n t r a c t _ s t a t u s . D O C _ O K ;   / / N o   d i s c r e p a n c i e s                                                     / /   t r a n s f e r   a l l   t h e   m o n e y   w h i c h   i s   i n   t h e   c o n t r a c t   b e t w e e n   s e l l e r   a n d   f i n t e c h   	 	         b a l a n c e [ s e l l e r ]   =   ( m o n e y   -   c o m m i s s i o n _ c o s t ) ;   	 	         b a l a n c e [ f i n t e c h ]   =   ( m o n e y   -   b a l a n c e [ s e l l e r ] ) ;   	 	                           }   e l s e   {                                                     s t a t u s   =   c o n t r a c t _ s t a t u s . D O C _ D E F E C T ;   / / d i s c r e p a n c i e s                                                     / /   t r a n s f e r   a l l   t h e   m o n e y   w h i c h   i s   i n   t h e   c o n t r a c t   b e t w e e n   b u y e r   a n d   f i n t e c h                           b a l a n c e [ b u y e r ]   =   ( m o n e y   -   d e f e c t _ f e e ) ;   	 	         b a l a n c e [ f i n t e c h ]   =   m o n e y   -   b a l a n c e [ b u y e r ] ;                   }           }                               f u n c t i o n   m o n e y _ t o _ B u y e r ( )   p u b l i c   p a y a b l e {                   / *   L e t   t h e   b u y e r   r e t r i e v e   t h e   m o n e y   i f   d o c u m e n t s   a r e n ' t   c o m p l i a n t   * /                                     r e q u i r e ( m s g . s e n d e r   = =   b u y e r ,   " O n l y   t h e   b u y e r   c a n   d e c i d e   w h e t h e r   h e   w a n t s   t o   w i t h d r a w   o r   n o t " ) ;                   r e q u i r e ( b a l a n c e [ m s g . s e n d e r ]   >   0 ,   " N e e d   t o   h a v e   m o n e y   i n   t h e   c o n t r a c t " ) ;                   r e q u i r e ( s t a t u s   = =   c o n t r a c t _ s t a t u s . D O C _ D E F E C T ,   " I n v a l i d   s t a t u s ,   s t a t u s   i s   n o t   D O C _ D E F E C T " ) ;                     a d d r e s s   p a y a b l e   r e c i p i e n t   =   m s g . s e n d e r ;                     	         u i n t   a m o u n t   =   b a l a n c e [ r e c i p i e n t ] ;   	 	 b a l a n c e [ r e c i p i e n t ]   =   0 ;   	   	 	 / / w o r k s   l i k e   t r a n s f e r   f u n c t i o n   b u t   a v o i d   r e e n t r a n c y                   ( b o o l   s u c c e s s , )   =   m s g . s e n d e r . c a l l { v a l u e   :   a m o u n t } ( " " ) ;                   r e q u i r e ( s u c c e s s ) ;           }                     f u n c t i o n   m o n e y _ t o _ S e l l e r ( )   p u b l i c   p a y a b l e {                                     / *   L e t   t h e   s e l l e r   r e t r i e v e   t h e   m o n e y   i f   d o c u m e n t s   a r e   c o m p l i a n t                   N o t e :   a n y o n e   c a n   c a l l   t h i s   f u n c t i o n * /                   r e q u i r e ( m s g . s e n d e r   = =   s e l l e r ,   " O n l y   t h e   s e l l e r   c a n   d e c i d e   w h e t h e r   h e   w a n t s   t o   w i t h d r a w   o r   n o t " ) ;                   r e q u i r e ( b a l a n c e [ m s g . s e n d e r ]   >   0 ,   " N e e d   t o   h a v e   m o n e y   i n   t h e   c o n t r a c t " ) ;                   r e q u i r e ( s t a t u s   = =   c o n t r a c t _ s t a t u s . D O C _ O K ) ;                     a d d r e s s   p a y a b l e   r e c i p i e n t   =   m s g . s e n d e r ;     	 	 u i n t   a m o u n t   =   b a l a n c e [ r e c i p i e n t ] ;   	 	 b a l a n c e [ r e c i p i e n t ]   =   0 ;       	 	 / / w o r k s   l i k e   t r a n s f e r   f u n c t i o n   b u t   a v o i d   r e e n t r a n c y                   ( b o o l   s u c c e s s , )   =   m s g . s e n d e r . c a l l { v a l u e   :   a m o u n t } ( " " ) ;                   r e q u i r e ( s u c c e s s ) ;           }                     f u n c t i o n   f i n t e c h _ w i t h d r a w ( )     p u b l i c   p a y a b l e {                                     / / t h e   f i n t e c h   c a n   w i t h d r a w   i t s   c o m m i s s i o n   f e e s                   r e q u i r e ( m s g . s e n d e r   = =   f i n t e c h ,   ' o n l y   t h e   f i n t e c h   c a n   w i t h d r a w   f e e s ' ) ;                   r e q u i r e ( b a l a n c e [ m s g . s e n d e r ]   >   0 ,   " N e e d   t o   h a v e   m o n e y   i n   t h e   c o n t r a c t " ) ;                                     a d d r e s s   p a y a b l e   r e c i p i e n t   =   m s g . s e n d e r ;                                     u i n t   a m o u n t   =   b a l a n c e [ r e c i p i e n t ] ;   	 	 b a l a n c e [ r e c i p i e n t ]   =   0 ;   	 	                   ( b o o l   s u c c e s s , )   =   m s g . s e n d e r . c a l l { v a l u e   :   a m o u n t } ( " " ) ;                   r e q u i r e ( s u c c e s s ) ;           }                     f u n c t i o n   c h e c k _ C o n t r a c t _ B a l a n c e ( )   p u b l i c   v i e w   r e t u r n s ( u i n t ) {                                     / *   G i v e   t o   e a c h   o f   t h e   p a r t i e s   i n v o l v e d   t h e   p o s s i b i l i t y   o f   c h e c k i n g   t h e   c o n t r a c t   b a l a n c e   * /                   r e q u i r e ( m s g . s e n d e r   = =   f i n t e c h   | |   m s g . s e n d e r   = =   b u y e r   | |   m s g . s e n d e r   = =   s e l l e r ) ;                   r e t u r n   a d d r e s s ( t h i s ) . b a l a n c e ;           }                     f u n c t i o n   g e t B a l a n c e ( )   p u b l i c   v i e w   r e t u r n s ( u i n t )   {                   r e t u r n   b a l a n c e [ m s g . s e n d e r ] ;           }                             f u n c t i o n   d e s t r o y c o n t r a c t ( )   p u b l i c {                   r e q u i r e ( m s g . s e n d e r   = =   f i n t e c h ) ;                   s e l f d e s t r u c t ( m s g . s e n d e r ) ;           }   }               / * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *       d r a f t       * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * /                     / /   d e f i n e   t h e   b o o l   t h a t   t h e   F i n t e c h   w i l l   s e t   t o   T r u e   i f   d o c u m e n t s   a r e n ' t   c o m p l i a n t   a n d           / /   t h e   b u y e r   g a i n s   t h e   p o s s i b i l i t y   o f   w i t h d r a w i n g   t h e   m o n e y           / / b o o l   p u b l i c   b u y e r _ o u t ;             / *           f u n c t i o n   F i r s t I n s t a l l m e n t   ( u i n t 2 5 6   a m o u n t )   e x t e r n a l   p a y a b l e   {                   r e q u i r e ( m s g . s e n d e r   = =   b u y e r , ' o n l y   b u y e r   c a n   u p l o a d   m o n e y ' ) ;                   m s g . v a l u e   = =   a m o u n t ;           } * /                                       / *           f u n c t i o n   F i n a l I n s t a l l m e n t   ( u i n t 2 5 6   a m o u n t 2 )   p u b l i c   p a y a b l e   {                   r e q u i r e ( m s g . s e n d e r   = =   b u y e r , ' o n l y   b u y e r   c a n   u p l o a d   m o n e y ' ) ;                   r e q u i r e ( s t a t u s   = =   c o n t r a c t _ s t a t u s . D O C _ O K ) ;                   m s g . v a l u e   = =   a m o u n t 2 ;                   s t a t u s   =   c o n t r a c t _ s t a t u s . E N D ;           }                     f u n c t i o n   a l l o w _ b u y e r _ o u t ( b o o l   _ b o o l e a n )   p u b l i c   {                                     L e t   t h e   f i n t e c h   g i v e   ( o r   t a k e )   t h e   b u y e r   t h e   p o s s i b i l i t y   o f   w i t h d r a w i n g   f r o m                     t h e   t r a n s a c t i o n ,   i f   t h e r e   a r e   r e l e v a n t   d i s c r e p a n c i e s                                       r e q u i r e ( m s g . s e n d e r   = =   f i n t e c h ) ;                   b u y e r _ o u t   =   _ b o o l e a n ;           } * /      B [ u û@«             	              Å
