@@ -38,7 +38,7 @@ contract LetterCredit {
     
     //define fees held by the fintech company
     uint defect_fee; // fee in case of no compliance
-	uint commission_cost; // fee in case of compliance
+    uint commission_cost; // fee in case of compliance
 	
     // these arguments are set only once, when deploying the contract
     constructor (address payable _buyer,  address payable _seller, address payable _fintech) public payable{
