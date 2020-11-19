@@ -2,7 +2,7 @@ pragma solidity >0.5.0 <0.7.0;
 //"SPDX-License-Identifier: UNLICENSED"
 
 /*
-This contract handles the money part of the transactions:
+This contract is the union of the "Money Handler.sol" and "prototype.sol":
 1) receive() -> Let the buyer put the money in the contract (implement installments)
 2) buyerUpload() -> buyer requests documents (implement Ipfs)
 3) sellerUpload() -> seller upload requested documents (implement Ipfs)
