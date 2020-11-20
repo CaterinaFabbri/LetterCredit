@@ -19,6 +19,7 @@ This contract is the union of the "Money Handler.sol" and "prototype.sol":
 //Upload document on IPFS and encrypt using public code of seller (and after buyer) 
 //copy the  hash of the file on SimpleStorage (Qm...)
 //https://medium.com/@mycoralhealth/learn-to-securely-share-files-on-the-blockchain-with-ipfs-219ee47df54c
+//before deploy SimpleStorage from buyer Account, than deploy of LetterCredit
 
 contract SimpleStorage {
 
