@@ -16,8 +16,30 @@ This contract is the union of the "Money Handler.sol" and "prototype.sol":
 10) destroycontract() -> fintech possibility to destroy contract
 */
 
+//Upload document on IPFS and encrypt using public code of seller (and after buyer) 
+//copy the  hash of the file on SimpleStorage (Qm...)
+//https://medium.com/@mycoralhealth/learn-to-securely-share-files-on-the-blockchain-with-ipfs-219ee47df54c
+
+contract SimpleStorage {
+
+    string doc_hash;
+    
+    function store(string memory _hash) public returns(bool){
+        doc_hash = _hash;
+        return true;
+    }
+
+    function get() public view returns (string memory){
+        return doc_hash;
+    }
+}
+
+
 
 contract LetterCredit {
+    
+    //in order to call SimpleStorage
+    address addressS;
     
     // define the addresses of the parties invovled
     address payable public buyer;
@@ -27,8 +49,8 @@ contract LetterCredit {
     mapping(address => uint) balance;
     
     //define documents to be uploaded
-    string buyer_document;
-    string seller_document;
+    //string buyer_document;
+    //string seller_document;
     
     //define all the status that the contract may have
     enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT} contract_status status;
@@ -53,9 +75,13 @@ contract LetterCredit {
         balance[buyer] = 0;
         balance[seller] = 0;
         balance[fintech] = 0;
-        commission_cost = 1 ether;
+        commission_cost = 1 ether; //change fees in %
         defect_fee = 1 ether;
 
+    }
+    
+    function SetStorageAddress(address _addressS) external{
+        addressS = _addressS;
     }
     
     receive() external payable {
@@ -64,31 +90,49 @@ contract LetterCredit {
     }
 
     
-    function buyerUpload(string memory _buyer_document) public payable{
+    function buyerUpload(string memory hash_buyer) external{
         require(msg.sender == buyer, "Invalid access, only buyer can upload documents");
-	require(status == contract_status.ON,"Invalid status, status is not ON");
+	    require(status == contract_status.ON,"Invalid status, status is not ON");
 	    
-	//The buyer uploads the document
-	buyer_document = _buyer_document;
-	status = contract_status.BUYER_UPLOADED;
+	    //The buyer uploads the document 
+	    //buyer_document = _buyer_document; (string memory _buyer_document)
+	
+	    //Using SimpleStorage
+	    SimpleStorage s = SimpleStorage(addressS); // pointer to SimpleStorage, type variable (smart contract) name of variable (s)
+	    s.store(hash_buyer);
+	    //require(success, 'Error, documents not stored');
+	
+	    status = contract_status.BUYER_UPLOADED;
 	}
 
-    function sellerUpload(string memory _document) public{
+	
+    function sellerUpload(string memory hash_seller) public{
         
         //The seller, after the buyer has uploaded the document and the money, upload his document. 
-
-	require(msg.sender == seller,"Invalid access, only seller can upload documents");
-	require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");
+	    require(msg.sender == seller,"Invalid access, only seller can upload documents");
+	    require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");
 		
-	seller_document = _document;
-	status = contract_status.SELLER_UPLOADED;
+	    //seller_document = _document; (string memory _document)
+	
+	    //Using SimpleStorage
+	    SimpleStorage s = SimpleStorage(addressS);
+	    s.store(hash_seller);
+        //require(success, 'Error, documents not stored');
+        
+	    status = contract_status.SELLER_UPLOADED;
+	}
+	
+	function ReadHash() public view returns(string memory){
+	    require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller);
+	    SimpleStorage s = SimpleStorage(addressS);
+	    return s.get();
 	}
 
     function checkCompliance(bool _compliance) public{
         
         /* Let the fintech update the compliance status upon verification of documents.
         This enables the seller to retrieve the money */
-	require(msg.sender == fintech, "Invalid access, only fintech can review documents");
+	    require(msg.sender == fintech, "Invalid access, only fintech can review documents");
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
         uint money = address(this).balance;
@@ -96,23 +140,25 @@ contract LetterCredit {
         compliance = _compliance;
 
         if (compliance) {
-		status = contract_status.DOC_OK; //No discrepancies
             
-            	// transfer all the money which is in the contract between seller and fintech
-		balance[seller] = (money - commission_cost);
-		balance[fintech] = (money - balance[seller]);
+		    status = contract_status.DOC_OK; //No discrepancies
+            
+            // transfer all the money which is in the contract between seller and fintech
+		    balance[seller] = (money - commission_cost);
+	    	balance[fintech] = (money - balance[seller]);
 		    
         } else {
             
 	    	status = contract_status.DOC_DEFECT; //discrepancies
             
-            	// transfer all the money which is in the contract between buyer and fintech
-            	balance[buyer] = (money - defect_fee);
-		balance[fintech] = money - balance[buyer];
+            // transfer all the money which is in the contract between buyer and fintech
+            balance[buyer] = (money - defect_fee);
+		    balance[fintech] = money - balance[buyer];
         }
     }
     
-    
+
+
     function money_to_Buyer() public payable{
         /* Let the buyer retrieve the money if documents aren't compliant */
         
@@ -122,10 +168,10 @@ contract LetterCredit {
 
         address payable recipient = msg.sender;
         
-	uint amount = balance[recipient];
-	balance[recipient] = 0;
+	    uint amount = balance[recipient];
+	    balance[recipient] = 0;
 	
-	//works like transfer function but avoid reentrancy
+	    //works like transfer function but avoid reentrancy
         (bool success,) = msg.sender.call{value : amount}("");
         require(success);
     }
@@ -140,10 +186,10 @@ contract LetterCredit {
 
         address payable recipient = msg.sender;
 
-	uint amount = balance[recipient];
-	balance[recipient] = 0;
+	    uint amount = balance[recipient];
+	    balance[recipient] = 0;
  
-	//works like transfer function but avoid reentrancy
+	    //works like transfer function but avoid reentrancy
         (bool success,) = msg.sender.call{value : amount}("");
         require(success);
     }
@@ -157,11 +203,13 @@ contract LetterCredit {
         address payable recipient = msg.sender;
         
         uint amount = balance[recipient];
-	balance[recipient] = 0;
+	    balance[recipient] = 0;
 		
         (bool success,) = msg.sender.call{value : amount}("");
         require(success);
     }
+    
+    
     
     function check_Contract_Balance() public view returns(uint){
         
@@ -170,15 +218,23 @@ contract LetterCredit {
         return address(this).balance;
     }
     
+    
+    
     function getBalance() public view returns(uint) {
         return balance[msg.sender];
     }
+    
+    
     
         function destroycontract() public{
         require(msg.sender == fintech);
         selfdestruct(msg.sender);
     }
 }
+
+
+
+
 
 
     /****************************************   draft   **********************************************************/
