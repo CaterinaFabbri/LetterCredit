@@ -26,7 +26,7 @@
     >
 
 
-- **20-11 App and contract testing**
+- **20-11 Contract improving**
 
     - Todoes for next meeting:
     >
