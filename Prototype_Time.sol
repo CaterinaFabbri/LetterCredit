@@ -107,12 +107,7 @@ contract LetterCredit {
     
     function Ether_Upload() payable public returns (bool success) { 
         require(msg.sender == buyer, "Only the one who created the contract can upload ether");
-        _status = status
-        if (_status == contract_status.DOC_OK || _status == contract_status.DOC_OK) {
-            return(false);
-        } else {
-            return(true);
-        }
+        return(true);
     }    
 
     function buyerUpload(string memory hash_buyer) external{
