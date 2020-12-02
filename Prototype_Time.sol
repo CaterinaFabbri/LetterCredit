@@ -107,9 +107,14 @@ contract LetterCredit {
     
     function Ether_Upload() payable public returns (bool success) { 
         require(msg.sender == buyer, "Only the one who created the contract can upload ether");
-        return true;
-    }
-    
+        _status = status
+        if (_status == contract_status.DOC_OK || _status == contract_status.DOC_OK) {
+            return(false);
+        } else {
+            return(true);
+        }
+    }    
+
     function buyerUpload(string memory hash_buyer) external{
         require(msg.sender == buyer, "Invalid access, only buyer can upload documents");
 	    require(status == contract_status.ON, "Invalid status, status is not ON");
