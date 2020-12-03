@@ -3,7 +3,8 @@ pragma solidity >0.5.0 <0.7.0;
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 /*
 This contract is the union of the "Money Handler.sol" and "prototype.sol":
-1) receive() -> Let the buyer put the money in the contract (implement installments)
+1) Ether_Upload() -> instead of creating functions that allows to pay using different installments, Ether_Upload give the possiblity only to 
+the buyer to upload money into the contract, therefore the buyer can upload the money in any moment and so also pay in installments.
 2) buyerUpload() -> buyer requests documents (implement Ipfs)
 3) sellerUpload() -> seller upload requested documents (implement Ipfs)
 4) checkCompliance() -> Let the Fintech update a bool to signal that all documents are compliant 
@@ -108,9 +109,10 @@ contract LetterCredit {
         addressS = _addressS;
     }
     
-    receive() external payable {
-        //Let the buyer upload the money 
-        require(msg.sender == buyer, 'only buyer can upload money'); 
+
+    function Ether_Upload() payable public returns (bool success) { 
+        require(msg.sender == buyer, "Only the one who created the contract can upload ether");
+        return true;
     }
 
     
