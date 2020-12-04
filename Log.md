@@ -1,6 +1,53 @@
 # Meeting Roadmap
 
-**27-11 App and contract testing **
+**04-12 Professor Feedback pt. 2**
+
+- Todoes for next meeting:
+>
+> - Improve the code with a `centralized fintech`, so to be able to send it to the professor
+          >> 
+          >> Give the fintech the possibility of uploading a document, when it doesn't judge the document as compliant, to explain the reason why
+          >>
+          >> Give the seller the possibility to upload several documents , with compliance to be checked for each. One possible implementation is that the number of 'slots', or documents to be uploaded, is specified by the buyer according to the letter of credit. Otherwise, let's simplify and say that the seller uploads just one big document with everything which is required
+          >> 
+          >> Spread the content of our contract into multiple contracts, for security and clarity reasons
+          >> 
+          >> Reduce the number of view buttons, for example using events, or put them into another contract
+          >>
+          >> The buyer shall declare and set the end-time upon uploading the Letter of Credit
+          >> 
+          >> The buyer shall be able to decide whether or not he wants to continue the deal if the documents aren't compliant (he needs to be able to see the fintech's document and we may give this possibility only for relevant lack of compliance)
+          >> 
+          >> 
+          >>
+> - Keep exploring the possiblities of the  `voting mechanism`, to step-up the project
+          >> 
+          >> Give the fintech the possibility to revoke the right to vote
+          >>
+          >> 
+          >> Start merging the voting system into our contracts
+          >>
+          >> 
+          >> Let the voting be on a specific document
+          >>
+          >> 
+          >> let the outcome of the vote influence the state of the main contract (compliance, not_compliance etc.)
+          >>
+          >> let the fintech create only one network of banks, which can vote on several documents in the same transaction between a buyer and a seller, for several couples of buyers and sellers
+          >>
+          >> 
+          >> Implement the rewards for the banks, and the commission fee for the fintech
+
+
+
+- What we improved since previous meeting:
+>
+> We implemented all *todoes* coming from the previous meeting
+>
+
+
+
+**27-11 App and contract testing**
 
 - Todoes for next meeting:
 >
@@ -26,7 +73,7 @@
 >
 
 
-**20-11 App and contract testing **
+**20-11 App and contract testing**
 
 - Todoes for next meeting:
 >
