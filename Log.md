@@ -1,5 +1,24 @@
 # Meeting Roadmap
 
+**05-12 Latest_update.sol**
+
+- Todoes for next meeting:
+  - Improve the code with a `centralized fintech`, so to be able to send it to the professor
+      - Give the fintech the possibility of uploading a document, when it doesn't judge the document as compliant, to explain the reason why
+          
+      * Give the seller the possibility to upload several documents , with compliance to be checked for each. One possible implementation is that the number of 'slots', or documents to be uploaded, is specified by the buyer according to the letter of credit. Otherwise, let's simplify and say that the seller uploads just one big document with everything which is required
+        
+      * Spread the content of our contract into multiple contracts, for security and clarity reasons
+      * Give the seller the possibility to upload several documents , with compliance to be checked for each. One possible implementation is that the number of 'slots', or documents to be uploaded, is specified by the buyer according to the letter of credit. Otherwise, let's simplify and say that the seller uploads just one big document with everything which is required
+
+      * Spread the content of our contract into multiple contracts, for security and clarity reasons
+
+      * Reduce the number of view buttons, for example using events, or put them into another contract
+
+      * The buyer shall declare and set the end-time upon uploading the Letter of Credit -- DONE
+
+      * The buyer shall be able to decide whether or not he wants to continue the deal if the documents aren't compliant (he needs to be able to see the fintech's document and we may give this possibility only for relevant lack of compliance) -- DONE
+
 **04-12 Professor Feedback pt. 2**
 
 - Todoes for next meeting:
