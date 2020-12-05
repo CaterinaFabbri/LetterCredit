@@ -9,7 +9,6 @@
       * Give the seller the possibility to upload several documents , with compliance to be checked for each. One possible implementation is that the number of 'slots', or documents to be uploaded, is specified by the buyer according to the letter of credit. Otherwise, let's simplify and say that the seller uploads just one big document with everything which is required
         
       * Spread the content of our contract into multiple contracts, for security and clarity reasons
-      * Give the seller the possibility to upload several documents , with compliance to be checked for each. One possible implementation is that the number of 'slots', or documents to be uploaded, is specified by the buyer according to the letter of credit. Otherwise, let's simplify and say that the seller uploads just one big document with everything which is required
 
       * Spread the content of our contract into multiple contracts, for security and clarity reasons
 
