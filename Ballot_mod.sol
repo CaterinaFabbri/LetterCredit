@@ -8,7 +8,7 @@ pragma solidity 0.7.5;
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/CaterinaFabbri/LetterCredit/blob/main/Latest%20Prototype_Time.sol";
 
-contract Ballot {
+contract Ballot is Ownable {
     
     address address_Prototype;
     
