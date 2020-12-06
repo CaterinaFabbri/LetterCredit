@@ -187,16 +187,17 @@ contract LetterCredit is Ballot {
 	
     // ----------------------------------------- Fintech Domain -----------------------------------------  //
 	
-    function setCompliance(bool _compliance) public onlyOwner{
+    function checkCompliance() public onlyOwner{
     
         /* Let the fintech update the compliance status upon verification of documents.
         This enables the seller to retrieve the money */
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
         uint money = address(this).balance;
+        uint _compliance = winningProposal();
         
         // No discrepancies scenario
-        if (_compliance == true) {
+        if (_compliance == 0) {
             
     	    status = contract_status.DOC_OK; 
     
