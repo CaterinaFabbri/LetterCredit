@@ -1,45 +1,80 @@
 pragma solidity 0.7.5;
 //"SPDX-License-Identifier: UNLICENSED"
 
-// LATEST CHANGES: 
-// block.timestamp instea of now (sol 7.5);
-// removed public from constructor (sol. 7.5);
-// removed the compliance bool from variables;
-// removed number_of_days from the variables;
-// now fintech is the first argument of constructor;
-// now using OpenZeppeling to set Fintech as owner (requires prevous step);
-// now hashes of documents uploaded by buyer and seller are in a mapping,
-// this assumes that only 1 document is needed to be uploaded for each, and
-// that the document comes in the form of IPFS hash;
-// now the buyer sets the endtime right on deployment of the contract, thus also
-// on_time status of the contract is set when the buyer uploads the doc instead than in the constructor;
-// reordered the functions (you surely may change this);
-// removed public from a couple of time variables;
+// Deploy only LetterCredit
+// NOTE: need to set an higher gas limit 
 
-
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
-import "https://github.com/CaterinaFabbri/LetterCredit/blob/main/Ballot_mod.sol";
 
-/*
-This contract is the union of the "Money Handler.sol" and "prototype.sol":
-1) Ether_Upload() -> instead of creating functions that allows to pay using different installments, Ether_Upload give the possiblity only to 
-the buyer to upload money into the contract, therefore the buyer can upload the money in any moment and so also pay in installments.
-2) buyerUpload() -> buyer requests documents (implement Ipfs)
-3) sellerUpload() -> seller upload requested documents (implement Ipfs)
-4) checkCompliance() -> Let the Fintech update a bool to signal that all documents are compliant 
-(implement possibility to upload new documents if there are discrepancies)
-5) money_to_seller() -> Give the seller the possibility of getting the money as soon as the documents are approved
-6) money_to_Buyer()  -> Let the buyer have the money back if the documents aren't compliant and time expires
-7) fintech_withdraw() -> Let the fintech withdraw its fees
-8) check_Contract_Balance() -> Let the fintech update a bool to allow (or stop allowing) the buyer to retrieve the money
-9) getBalance() -> get the balance of buyer, seller and fintech
-10) destroycontract() -> fintech possibility to destroy contract and inherit the amount of the transaction.
-Note: The fintech firm has no interest in behaving improperly as it has a reputation to maintain.
-11) SetEndTime() -> lets the buyer set the expiration time of the letter of credit (in number of days)
-12) ExtendTime() -> gives the buyer the possibility to extend time after the expiration date of the letter of credit
-*/
-//Upload document on IPFS and encrypt using public code of seller (and after buyer) 
+contract Ballot is Ownable {
+    
+    struct Voter {
+        bool voted;  // if true, that person already voted
+        uint vote;   // index of the voted proposal
+    }
+    
+    struct Proposal {
+        string name;   // short name (up to 32 bytes)
+        uint voteCount; // number of accumulated votes
+    }
 
+    mapping(address => Voter)  voters;
+    mapping(address => bool)  allowed_to_vote;
+    address[] public voters_addresses;
+    Proposal[] public proposals;
+
+    constructor() {
+        
+        proposals.push(Proposal({
+            name: "Compliant",
+            voteCount: 0
+            }));
+        proposals.push(Proposal({
+            name: "Not Compliant",
+            voteCount: 0
+            }));        
+    }
+    
+    function giveRightToVote(address voter) public onlyOwner {
+        require(!voters[voter].voted,"The voter already voted.");
+        // add his address to the list of voters
+        voters_addresses.push(voter);
+        allowed_to_vote[voter] = true;
+    }
+
+    /* let a bank vote, modifying its Voter struct accordingly */
+    function vote(uint proposal) public {
+        Voter storage sender = voters[msg.sender];
+        require(!sender.voted, "Already voted.");
+        sender.voted = true;
+        sender.vote = proposal;
+        proposals[proposal].voteCount ++;
+    }
+
+    function winningProposal() onlyOwner internal view returns (uint winningProposal_) {
+        uint winningVoteCount = 0;
+        for (uint p = 0; p < proposals.length; p++) {
+            if (proposals[p].voteCount > winningVoteCount) {
+                winningVoteCount = proposals[p].voteCount;
+                winningProposal_ = p;
+            }
+        }
+    }
+
+    function winnerName() onlyOwner public view returns (string memory winnerName_) {
+        winnerName_ = proposals[winningProposal()].name;
+    }
+    
+    function replenish_all_votes() public onlyOwner {
+        for (uint v = 0; v < voters_addresses.length; v++) {
+            address addr = voters_addresses[v];
+            voters[addr].voted = false;
+        }
+    }
+
+    
+}
 
 contract LetterCredit is Ballot {
     
@@ -223,14 +258,19 @@ contract LetterCredit is Ballot {
 	// ----------------------------------------- Mixed Domain -----------------------------------------  //
 	
 	function See_Doc_Hash( address _user) public view returns(string memory){
-	    require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller);
+	    bool isbank = allowed_to_vote[msg.sender];
+	    require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller || isbank==true, "not authorized");
 	    return docu_hashs[_user];
 	}
-
+    
+    function canc() public view returns(bool _b){
+        return allowed_to_vote[msg.sender];
+    }
+    
     function check_Contract_Balance() public view returns(uint){
         
         /* Give to each of the parties involved the possibility of checking the contract balance */
-        require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller);
+        require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller, "not authorized");
         return address(this).balance;
     }
     
