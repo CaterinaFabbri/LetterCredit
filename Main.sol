@@ -184,7 +184,7 @@ contract LetterCredit is Ballot {
 	
     // ----------------------------------------- Fintech Domain -----------------------------------------  //
 	
-    function setCompliance() public onlyOwner{
+    function checkCompliance() public onlyOwner{
     
         /* Let the fintech update the compliance status upon verification of documents.
         This enables the seller to retrieve the money */
