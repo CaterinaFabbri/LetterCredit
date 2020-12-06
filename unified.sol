@@ -2,6 +2,21 @@
 
 pragma solidity 0.7.5;
 
+// MAIN CHANGES: 
+
+//* When the Fintech checks the compliance (so far, NOT upgraded with time, or a mechanism that tells the fintech when to do it)
+// now the ballot contract (winningProposal()) is used. 
+
+//* The two contracts are unified in only one file. The owner of the contracts (fintech) needs to set for the LetterCredit contract
+// the ballot adress, and viceversa.
+
+//* There is no need to remove the require from LetterCredit.See_Doc_Hash(), indeed I have added to the address that can 
+// access this function also 'msg.sender ==address_ballot' (the address of the ballot contract). In this way, it is possible 
+// to call from the ballot contract this function. Note that only those that have access to the function in which is called
+// the LetterCredit.See_Doc_Hash() will be credited as 'address_ballot'. 
+
+//* The same happens for the Ballot.winningProposal. Here, the msg.sender must be either == owner() (used when the function is called directly from 
+// the ballot contract), or == address_Prototype (used when the function is called by LetterCredit.checkCompliance).
 
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
