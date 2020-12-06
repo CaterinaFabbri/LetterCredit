@@ -6,11 +6,8 @@
 pragma solidity 0.7.5;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
-import "https://github.com/CaterinaFabbri/LetterCredit/blob/main/Latest%20Prototype_Time.sol";
 
 contract Ballot is Ownable {
-    
-    address address_Prototype;
     
     struct Voter {
         bool voted;  // if true, that person already voted
@@ -36,12 +33,7 @@ contract Ballot is Ownable {
         proposals.push(Proposal({
             name: "Not Compliant",
             voteCount: 0
-            }));
-            
-    }
-    
-    function SetContractAddress(address _ContractAddress) external onlyOwner{
-        address_Prototype = _ContractAddress;
+            }));        
     }
     
     function giveRightToVote(address voter) public onlyOwner {
@@ -82,11 +74,6 @@ contract Ballot is Ownable {
             voters[addr].voted = false;
         }
     }
-    
-    function Read_doc_hashes(address _Buyer_Or_Seller) public view returns (string memory){
-        require(allowed_to_vote[msg.sender], "Only allowed to vote can see documents' hashes.");
-        LetterCredit l = LetterCredit(address_Prototype);
-        return(l.See_Doc_Hash(_Buyer_Or_Seller));
-    }
+
     
 }
