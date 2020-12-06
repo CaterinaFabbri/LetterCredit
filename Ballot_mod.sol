@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+//"SPDX-License-Identifier: UNLICENSED"
 
 //if you want to try it remove line 226 (require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller, "Only if allowed can see hashes");) 
 //from Latest Prototype_Time.sol
