@@ -40,7 +40,7 @@ contract Ballot is Ownable{
             
     }
     
-    function SetContractAddress(address _ContractAddress) external{
+    function SetContractAddress(address _ContractAddress) external onlyOwner{
         address_Prototype = _ContractAddress;
     }
     
