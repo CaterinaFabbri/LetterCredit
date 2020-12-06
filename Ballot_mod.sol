@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 
+//if you want to try it remove line 226 (require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller, "Only if allowed can see hashes");) 
+//from Latest Prototype_Time.sol
+
 pragma solidity 0.7.5;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
