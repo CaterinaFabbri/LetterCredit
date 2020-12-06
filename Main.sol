@@ -52,18 +52,17 @@ contract Ballot is Ownable {
         proposals[proposal].voteCount ++;
     }
 
-    function winningProposal() onlyOwner internal view returns (uint winningProposal_) {
+    function winningProposal() onlyOwner public view returns (string memory winnerName_){
         uint winningVoteCount = 0;
+        uint winningProposal_ = 0;
         for (uint p = 0; p < proposals.length; p++) {
             if (proposals[p].voteCount > winningVoteCount) {
                 winningVoteCount = proposals[p].voteCount;
                 winningProposal_ = p;
             }
         }
-    }
-
-    function winnerName() onlyOwner public view returns (string memory winnerName_) {
-        winnerName_ = proposals[winningProposal()].name;
+        winnerName_ = proposals[winningProposal_].name;
+        return(winnerName_);
     }
     
     function replenish_all_votes() public onlyOwner {
@@ -73,20 +72,18 @@ contract Ballot is Ownable {
         }
     }
 
-    
 }
 
 contract LetterCredit is Ballot {
     
     using SafeMath for uint;
     
-    //in order to call SimpleStorage
-    address addressS;
-    
     // define the addresses of the parties invovled
     address payable public buyer;
     address payable public seller;
     address payable public fintech;
+    address address_ballot;
+
     
     mapping(address => uint) balance;
      // can be made bytes32 in production, more efficient
@@ -95,9 +92,10 @@ contract LetterCredit is Ballot {
     //define deadline
     uint deadline;
     uint extension;
-    
+    bool waive; 
+
     //define all the status that the contract may have
-    enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT, MONEY_SENT} contract_status status;
+    enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT,DOC_REJECTED, MONEY_SENT} contract_status status;
     enum contract_time {ON_TIME, OUT_OF_TIME} contract_time time;
     
     //define fees held by the fintech company
@@ -166,6 +164,44 @@ contract LetterCredit is Ballot {
         
         time = contract_time.ON_TIME;
 	}
+	
+	 function waiveDiscrepancies(bool _waive) public onlyBuyer{
+        
+        // In case the documents don't comply, the buyer can
+        // decide whether to wave the discrepancies or terminate the
+        // contract
+        
+        require(status == contract_status.DOC_DEFECT, "Invalid status");
+
+        waive = _waive;
+
+        uint money = address(this).balance;
+
+        if (waive) {
+
+		    status = contract_status.DOC_OK; //The buyer decides to wave the discrepancies
+
+            uint commission; 
+            commission = money.mul(commission_cost)/100; 
+
+            // transfer all the money which is in the contract between seller and fintech
+		    balance[seller] = (money - commission);
+	    	balance[fintech] = (money - balance[seller]);
+
+        } else {
+
+	    	status = contract_status.DOC_REJECTED; //The buyer decides to terminate the contract
+
+            uint defect;
+            defect = money.mul(defect_fee)/100; 
+
+            // transfer all the money which is in the contract between buyer and fintech
+            balance[buyer] = (money - defect);
+		    balance[fintech] = money - balance[buyer];
+
+
+        }
+    }
 
 	// ----------------------------------------- Seller Domain -----------------------------------------  //
 	
@@ -191,14 +227,13 @@ contract LetterCredit is Ballot {
     
         /* Let the fintech update the compliance status upon verification of documents.
         This enables the seller to retrieve the money */
+        
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
         uint money = address(this).balance;
-        uint _compliance = winningProposal();
-        
         // No discrepancies scenario
-        if (_compliance == 0) {
-            
+        if (keccak256(bytes(winningProposal())) == keccak256(bytes("Compliant"))){
+
     	    status = contract_status.DOC_OK; 
     
             uint commission; 
@@ -213,19 +248,23 @@ contract LetterCredit is Ballot {
             
         	status = contract_status.DOC_DEFECT; 
         	
-            uint defect;
-            defect = money.mul(defect_fee)/100; 
-    
-            // split the money owed to the buyer and the fintech
-            balance[buyer] = (money - defect);
-    	    balance[fintech] = money - balance[buyer];
             }
         }
-    
-    
+
+/*    
+    function fintechUpload(string memory hash_fintech) public onlyOwner{
+        
+        // In case the documents defect, the fintech can upload a document
+        // for the buyer to review.
+	    require(status==contract_status.DOC_DEFECT, "Invalid status, status is not DOC_DEFECT");
+	    docu_hashs[fintech] = hash_fintech;
+
+	}
+
+*/    
     function sendMoney() public payable onlyOwner{
         
-        require(status == contract_status.DOC_DEFECT || status == contract_status.DOC_OK , "Invalid status");
+        require(status == contract_status.DOC_REJECTED || status == contract_status.DOC_OK , "Invalid status");
         
         uint amount_seller = balance[seller];
 	    uint amount_fintech = balance[fintech];
@@ -259,9 +298,9 @@ contract LetterCredit is Ballot {
 	// ----------------------------------------- Mixed Domain -----------------------------------------  //
 	
 	function See_Doc_Hash( address _user) public view returns(string memory){
-	    bool isbank = allowed_to_vote[msg.sender];
-	    require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller || isbank==true, "not authorized");
-	    return docu_hashs[_user];
+        bool isbank = allowed_to_vote[msg.sender];
+        require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller || isbank==true, "not authorized");	    
+        return docu_hashs[_user];
 	}
     
     function canc() public view returns(bool _b){
