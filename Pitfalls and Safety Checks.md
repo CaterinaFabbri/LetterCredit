@@ -1,8 +1,8 @@
-- The fintech can self-destruct the contract, getting all the money
+- The fintech can self-destruct the contract, getting all the money.
 > It means that some degree of trust is required towards the fintech, but it can be a very useful fall-back mechanism
 
-- the buyer may never set the waive status, thus the fintech won't be able to withdraw its funds.
->It's against the best interest of the buyer, as this wouldn't allow him to get is own money back.
+- The buyer may never set the waive status, thus the fintech won't be able to withdraw its funds.
+>It's against the best interest of the buyer, as this wouldn't allow him to get his own money back.
 >
 >An additional last resort is that the fintech can self-destruct the contract, getting all the money.
 >
