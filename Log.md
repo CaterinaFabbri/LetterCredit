@@ -1,22 +1,47 @@
 # Meeting Roadmap
 
-**05-12 Latest_update.sol**
+**07-12 Unify branches and polish pre-Petriconi check**
 
 - Todoes for next meeting:
-  - Improve the code with a `centralized fintech`, so to be able to send it to the professor
-      - Give the fintech the possibility of uploading a document, when it doesn't judge the document as compliant, to explain the reason why
+  - Mandatory:
+      - [Cat, Gio, Lor, Juan] Set the reward for compliant banks and let them retrieve the money
+      - [Eug] Let the fintech be able to remove banks from the system
+      - [Everyone] roleplay: let yourself be the seller or the buyer or a bank or an external user, and try to screw things up at each step of the process
+      - [Yus] try to implement a front-end also for the banks, so for the voting part
+  - Optional:
           
-      * Give the seller the possibility to upload several documents , with compliance to be checked for each. One possible implementation is that the number of 'slots', or documents to be uploaded, is specified by the buyer according to the letter of credit. Otherwise, let's simplify and say that the seller uploads just one big document with everything which is required
+      * Comment each function in the following way: above the function write:
+
+               /**
+               * @dev insert a brief description of the function here
+               * @param argument_1 explain what it is, argument_2 explain it etc. 
+               */
         
-      * Spread the content of our contract into multiple contracts, for security and clarity reasons
+      * Consider implementing a **deadline for voting**, after which votes are counted and the compliance is automatically set. Let the deadline be automatically defined when the seller uploads the document, and it consists in a fixed number of days (e.g. 3) after the uploading [in the future the fintech will set this parameter upon seeing the Letter of Credit from the buyer, so it's flexible based on how difficult it is to check compliance for the documents]. 
+      Caveat: this deadline must not surpass the main deadline. If this happens, revert the transaction, so the seller will not be able to upload the document. It will be up to the buyer to decide whether to extend the main deadline or not 
 
-      * Spread the content of our contract into multiple contracts, for security and clarity reasons
+      * [Eug] Adjust the payment of fintech/buyer/seller & other minor changes
 
-      * Reduce the number of view buttons, for example using events, or put them into another contract
+      * Check that the deadline works as intended (number of days), and maybe let the deadline be visible as a date (e.g. deadline -> dd/mm/aaaa) 
 
-      * The buyer shall declare and set the end-time upon uploading the Letter of Credit -- DONE
+  - Experimental
+      * Let the seller have a **fixed number of slots** (like a fixed array) in which it can upload the hashes of each documents he needs to provide. 
+      The number of documents is set by the buyer according to his Letter of Credit.
+      Compliance should be checked for each document, and the whole procedure is compliant only if all individual documents are compliant.
+      The buyer may 'force' a document to be considered compliant to signal that he waives the compliance for that document
 
-      * The buyer shall be able to decide whether or not he wants to continue the deal if the documents aren't compliant (he needs to be able to see the fintech's document and we may give this possibility only for relevant lack of compliance) -- DONE
+      * [Eug] Let the Fintech create and manage an **ecosystem of banks** in one contract, which is independent from the other contracts but can interact with them. Notably, the ecosystem can interact with multiple instances of the letter of credit contract. Thus it can vote on document compliance for several buyer-seller couples. This is even cooler if the seller doesn't upload a single document, but a range of documents, with compliance to be checked for each.
+
+- What we improved since previous meeting:
+    * The buyer now declares and set the end-time upon uploading the Letter of Credit document
+
+  * The buyer now can decide whether to waive the discrepancies or to retire from the transaction
+
+  * Reduced the number of view buttons and make everything more readable -- DONE
+
+  * Merged the voting system with the Letter of Credit contract 
+
+  * Other numeruous but minor improvements
 
 **04-12 Professor Feedback pt. 2**
 
