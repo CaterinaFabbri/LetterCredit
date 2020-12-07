@@ -7,7 +7,7 @@ contract Ballot is Ownable {
     
     // things that are different from what is in the Ballot function in Main.sol:
     // 1) new array that keeps track of all adresses allowed to vote (called bank)
-    // 2) function feesPayment(). the fun takes no input, only need to set a value and it will automatically 
+    // 2) function feesPayment(). the function takes no input, only need to set a value and it will automatically 
     // split it among banks that voted.
 
     enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT,DOC_REJECTED, MONEY_SENT} contract_status status;
@@ -27,7 +27,7 @@ contract Ballot is Ownable {
     mapping(address => bool)  allowed_to_vote;
     Proposal[] public proposals;
     
-    address[] bank; //variable to store bank adresses
+    address[] bank; //variable to store banks' adresses
 
     event NewVoter(address voter_address);
     event RemovedVoter(address voter_address);
@@ -90,7 +90,7 @@ contract Ballot is Ownable {
     
     function feesPayment() payable public onlyOwner{
         //for the moment a same fee is distributed among all banks that participated to the ballot 
-        //independently by the fact that some won and other lose
+        //independently by the fact that some won and other lost
         uint monetary_fee = address(this).balance; //set some money into the box value next to wei(or ether) before pressing the button
         uint fee = monetary_fee.div(bank.length);
         //with for loop the amount set before pressing the button is divided among those banks who voted
