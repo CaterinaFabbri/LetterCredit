@@ -25,7 +25,7 @@
       * Check that the deadline works as intended (number of days), and maybe let the deadline be visible as a date (e.g. deadline -> dd/mm/aaaa) 
 
   - Experimental
-      * Let the seller have a **fixed number of slots** (like a fixed array) in which it can upload the hashes of each documents he needs to provide. 
+      * Let the seller have a **fixed number of slots** (like a fixed array) in which it can upload the hashes of each document he needs to provide. 
       The number of documents is set by the buyer according to his Letter of Credit.
       Compliance should be checked for each document, and the whole procedure is compliant only if all individual documents are compliant.
       The buyer may 'force' a document to be considered compliant to signal that he waives the compliance for that document
@@ -37,7 +37,7 @@
 
   * The buyer now can decide whether to waive the discrepancies or to retire from the transaction
 
-  * Reduced the number of view buttons and make everything more readable -- DONE
+  * Reduced the number of view buttons and make everything more readable 
 
   * Merged the voting system with the Letter of Credit contract 
 
