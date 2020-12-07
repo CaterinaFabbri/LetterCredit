@@ -111,6 +111,7 @@ contract LetterCredit is Ownable{
     }
 
     function SetEndTime(uint _number_of_days) internal onlyBuyer {
+        //deadline = block.timestamp.add(_number_of_days * 1 days);
         deadline = block.timestamp.add(_number_of_days); //this is just in seconds to test whether it works fine
         time = contract_time.ON_TIME;
     }
