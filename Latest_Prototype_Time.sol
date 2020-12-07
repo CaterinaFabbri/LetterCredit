@@ -148,8 +148,9 @@ contract LetterCredit is Ownable, Events{
 	
 	function ExtendTime(uint _extension) external onlyBuyer {
         extension = _extension;
-        deadline = block.timestamp.add(extension);
-        
+        deadline = block.timestamp.add(extension * 1 days);
+        // deadline = block.timestamp.add(extension);
+
         time = contract_time.ON_TIME;
         emit Deadline_extension(deadline);
 	}
