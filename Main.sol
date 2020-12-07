@@ -4,10 +4,23 @@ pragma solidity 0.7.5;
 // Deploy only LetterCredit
 // NOTE: need to set an higher gas limit 
 
+// LATEST CHANGES: 
+// removed the array with voters
+// removed the replenish votes function
+// using emits to keep track of who can vote (can feed them also a document or the name of the bank)
+// added the function to remove the right to vote
+// removed fintech from the constructor arguments, now 33,33% faster to deploy :-)
+// now voting can happen only if contract status is SELLER_UPLOADED
+
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 
 contract Ballot is Ownable {
+    
+    // we define it here to allow banks to vote only when status is SELLER_UPLOADED
+    // probably it's better to create another contract which only stores variables, which are 
+    // then inherited, so we avoid this ugly thing pretty easily
+    enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT,DOC_REJECTED, MONEY_SENT} contract_status status;
     
     struct Voter {
         bool voted;  // if true, that person already voted
@@ -18,12 +31,15 @@ contract Ballot is Ownable {
         string name;   // short name (up to 32 bytes)
         uint voteCount; // number of accumulated votes
     }
+    
 
     mapping(address => Voter)  voters;
     mapping(address => bool)  allowed_to_vote;
-    address[] public voters_addresses;
     Proposal[] public proposals;
 
+    event NewVoter(address voter_address);
+    event RemovedVoter(address voter_address);
+    
     constructor() {
         
         proposals.push(Proposal({
@@ -37,14 +53,24 @@ contract Ballot is Ownable {
     }
     
     function giveRightToVote(address voter) public onlyOwner {
-        require(!voters[voter].voted,"The voter already voted.");
-        // add his address to the list of voters
-        voters_addresses.push(voter);
+        require(allowed_to_vote[voter] == false , "The user is already allowed to vote");
+        // below check isn't required nor useful as of now
+        //require(!voters[voter].voted,"The voter has already voted");
+    
         allowed_to_vote[voter] = true;
+        emit NewVoter(voter);
+    }
+    
+    function removeRightToVote(address voter) public onlyOwner {
+        require(allowed_to_vote[voter] != false , "The user is already not allowed to vote");
+        
+        allowed_to_vote[voter] = false;
+        emit RemovedVoter(voter);    
     }
 
     /* let a bank vote, modifying its Voter struct accordingly */
     function vote(uint proposal) public {
+        require(status == contract_status.SELLER_UPLOADED, "Can't vote on a document not yet uploaded");
         bool isbank = allowed_to_vote[msg.sender];
         require(isbank == true, "must be allowed to vote");
         Voter storage sender = voters[msg.sender];
@@ -66,16 +92,10 @@ contract Ballot is Ownable {
         winnerName_ = proposals[winningProposal_].name;
         return(winnerName_);
     }
-    
-    function replenish_all_votes() public onlyOwner {
-        // reset also vote counts
-        for (uint v = 0; v < voters_addresses.length; v++) {
-            address addr = voters_addresses[v];
-            voters[addr].voted = false;
-        }
-    }
 
 }
+
+/*********************************************************************************************************************************************************/
 
 contract LetterCredit is Ballot {
     
@@ -97,8 +117,8 @@ contract LetterCredit is Ballot {
     uint extension;
     bool waive; 
 
-    //define all the status that the contract may have
-    enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT,DOC_REJECTED, MONEY_SENT} contract_status status;
+    //define all the statuses that the contract may have
+    //enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT,DOC_REJECTED, MONEY_SENT} contract_status status;
     enum contract_time {ON_TIME, OUT_OF_TIME} contract_time time;
     
     //define fees held by the fintech company
@@ -109,13 +129,14 @@ contract LetterCredit is Ballot {
     event buyer_installment(uint256 amount);
 	
 	
-    constructor (address payable _fintech, address payable _buyer,  address payable _seller) payable{
+    constructor (address payable _buyer,  address payable _seller) payable{
         
         /* Stores the addresses of the buyer and of the seller
         and initializes the variables */
+        fintech = msg.sender;
         buyer = _buyer;
         seller = _seller;
-        fintech = _fintech;
+        
         
         status = contract_status.ON;
         
