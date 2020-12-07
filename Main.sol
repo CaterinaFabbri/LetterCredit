@@ -27,13 +27,13 @@ contract Ballot is Ownable {
     constructor() {
         
         proposals.push(Proposal({
+            name: "Not Compliant",
+            voteCount: 0
+            }));   
+        proposals.push(Proposal({
             name: "Compliant",
             voteCount: 0
             }));
-        proposals.push(Proposal({
-            name: "Not Compliant",
-            voteCount: 0
-            }));        
     }
     
     function giveRightToVote(address voter) public onlyOwner {
@@ -45,6 +45,8 @@ contract Ballot is Ownable {
 
     /* let a bank vote, modifying its Voter struct accordingly */
     function vote(uint proposal) public {
+        bool isbank = allowed_to_vote[msg.sender];
+        require(isbank == true, "must be allowed to vote");
         Voter storage sender = voters[msg.sender];
         require(!sender.voted, "Already voted.");
         sender.voted = true;
@@ -66,6 +68,7 @@ contract Ballot is Ownable {
     }
     
     function replenish_all_votes() public onlyOwner {
+        // reset also vote counts
         for (uint v = 0; v < voters_addresses.length; v++) {
             address addr = voters_addresses[v];
             voters[addr].voted = false;
@@ -90,7 +93,7 @@ contract LetterCredit is Ballot {
     mapping(address => string) docu_hashs;
     
     //define deadline
-    uint deadline;
+    uint public deadline;
     uint extension;
     bool waive; 
 
@@ -144,7 +147,8 @@ contract LetterCredit is Ballot {
     }
 
     function SetEndTime(uint _number_of_days) internal onlyBuyer {
-        deadline = block.timestamp.add(_number_of_days); //this is just in seconds to test whether it works fine
+        deadline = block.timestamp.add(_number_of_days * 1 days);
+        //deadline = block.timestamp.add(_number_of_days); //this is just in seconds to test whether it works fine
         time = contract_time.ON_TIME;
     }
     
@@ -264,6 +268,9 @@ contract LetterCredit is Ballot {
 */    
     function sendMoney() public payable onlyOwner{
         
+        // bank can remove maslicious users
+        // it's the best i nterest of each bank to make the transaction go well
+        
         require(status == contract_status.DOC_REJECTED || status == contract_status.DOC_OK , "Invalid status");
         
         uint amount_seller = balance[seller];
@@ -303,9 +310,6 @@ contract LetterCredit is Ballot {
         return docu_hashs[_user];
 	}
     
-    function canc() public view returns(bool _b){
-        return allowed_to_vote[msg.sender];
-    }
     
     function check_Contract_Balance() public view returns(uint){
         
