@@ -2,19 +2,13 @@ pragma solidity 0.7;
 //"SPDX-License-Identifier: UNLICENSED"
 
 // LATEST CHANGES: 
-// block.timestamp instea of now (sol 7.5);
-// removed public from constructor (sol. 7.5);
-// removed the compliance bool from variables;
-// removed number_of_days from the variables;
-// now fintech is the first argument of constructor;
-// now using OpenZeppeling to set Fintech as owner (requires prevous step);
-// now hashes of documents uploaded by buyer and seller are in a mapping,
-// this assumes that only 1 document is needed to be uploaded for each, and
-// that the document comes in the form of IPFS hash;
-// now the buyer sets the endtime right on deployment of the contract, thus also
-// on_time status of the contract is set when the buyer uploads the doc instead than in the constructor;
-// reordered the functions (you surely may change this);
-// removed public from a couple of time variables;
+// fintech is the msg.sender
+// created an internal function to settle balances, to avoid code-repetition
+// added an evil genius contact to test fund withdrawal
+// changed the way funds are withdrawn, to make the process more secure
+// added tons of events, so each user is able to now able to see what's going on, while preserving privacy
+// now the buyer can set an ether value when uploading the letter of credit document, to upload a first installment
+
 
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
@@ -40,13 +34,38 @@ Note: The fintech firm has no interest in behaving improperly as it has a reputa
 */
 //Upload document on IPFS and encrypt using public code of seller (and after buyer) 
 
+contract Events {
+    
+    // signal the start of the contract
+    event ContractDeployed(uint deadline);
+    
+    // signal that the buyer has uploaded some money
+    event BuyerInstallment(uint256 amount);
+    
+	// signal that the seller has uploaded the document
+	event SellerUpload();
+	
+    // signal an extension of the deadline
+    event Deadline_extension(uint deadline);
+    
+	// signal that the Fintech has evaluated compliance of seller's document
+	event ComplianceChecked();
+	
+	// signal that the buyer has decided either to waive or to end the transaction 
+	event BuyerDecision(bool waive);
+	
+    // signal that someone has withdrawn money
+    event Withdrawn(address withdrawer);
+}
 
-contract LetterCredit is Ownable{
+
+contract LetterCredit is Ownable, Events{
     
     using SafeMath for uint;
     
     //in order to call SimpleStorage
     address addressS;
+    bool waive;
     
     // define the addresses of the parties invovled
     address payable public buyer;
@@ -58,28 +77,25 @@ contract LetterCredit is Ownable{
     mapping(address => string) docu_hashs;
     
     //define deadline
-    uint deadline;
+    uint public deadline;
     uint extension;
     
     //define all the status that the contract may have
-    enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT, MONEY_SENT} contract_status status;
+    enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT, DOC_REJECTED} contract_status status;
     enum contract_time {ON_TIME, OUT_OF_TIME} contract_time time;
     
     //define fees held by the fintech company
-    uint defect_fee; // fee in case of no compliance
-    uint commission_cost; // fee in case of compliance
-    
-    // signal that the buyer uploaded some money
-    event buyer_installment(uint256 amount);
-	
-	
-    constructor (address payable _fintech, address payable _buyer,  address payable _seller) payable{
+    uint defect_fee;      // fee in case of no compliance
+    uint compliance_fee;  // fee in case of compliance
+	 
+    constructor (address payable _buyer,  address payable _seller) payable{
         
         /* Stores the addresses of the buyer and of the seller
         and initializes the variables */
+        fintech = msg.sender;
         buyer = _buyer;
         seller = _seller;
-        fintech = _fintech;
+        
         
         status = contract_status.ON;
         
@@ -87,52 +103,84 @@ contract LetterCredit is Ownable{
         balance[seller] = 0;
         balance[fintech] = 0;
         
-        commission_cost = 10; // in %
+        compliance_fee = 10; // in %
         defect_fee = 1;
     }
-    
     
     modifier onlyBuyer() {
         require(msg.sender == buyer);
         _;
     }
-    
+
     modifier onlySeller() {
         require(msg.sender == seller);
         _;
     }
     
-    
     // -----------------------------------------  Buyer Domain  ----------------------------------------- //
     // note: the functions accessible by the buyer come first, than those of the seller, then the fintech and finally the mixed ones
 
     function Ether_Upload() payable public onlyBuyer{ 
-        emit buyer_installment(msg.value);
-    }
-
-    function SetEndTime(uint _number_of_days) internal onlyBuyer {
-        //deadline = block.timestamp.add(_number_of_days * 1 days);
-        deadline = block.timestamp.add(_number_of_days); //this is just in seconds to test whether it works fine
-        time = contract_time.ON_TIME;
+        emit BuyerInstallment(msg.value);
     }
     
-    function buyerUpload(string memory hash_buyer, uint _Number_of_Days) external onlyBuyer {
+    function buyerUpload(string memory hash_buyer, uint _number_of_days) external payable onlyBuyer {
 	    require(status == contract_status.ON, "Invalid status, status is not ON");
 	   
+        // upload the letter of credit	   
 	    docu_hashs[buyer] = hash_buyer;
 	    status = contract_status.BUYER_UPLOADED;
 	    
-	    SetEndTime(_Number_of_Days);
+	    // set the deadline
+	    SetEndTime(_number_of_days);
+	    
+	    // eventually upload a first installment
+	    Ether_Upload();
+	    
+    	emit ContractDeployed(deadline);
 	}
 	
-	function ExtendTime(uint _extension) external onlyBuyer{
-        
+    function SetEndTime(uint _number_of_days) internal onlyBuyer {
+        deadline = block.timestamp.add(_number_of_days * 1 days);
+        //deadline = block.timestamp.add(_number_of_days); 
+        time = contract_time.ON_TIME;
+    }
+	
+	function ExtendTime(uint _extension) external onlyBuyer {
         extension = _extension;
         deadline = block.timestamp.add(extension);
         
         time = contract_time.ON_TIME;
+        emit Deadline_extension(deadline);
 	}
+    
+    function waiveDiscrepancies(bool _waive) public onlyBuyer {
+        
+        // In case the documents don't comply, the buyer can
+        // decide whether to wave the discrepancies or terminate the
+        // contract
+        
+        require(status == contract_status.DOC_DEFECT, "Can only use this function if there are discrepancies");
 
+        waive = _waive;
+
+        if (waive) {
+
+		    status = contract_status.DOC_OK; //The buyer decides to waive the discrepancies
+
+            // split the money owed to the fintech and the seller
+            setBalances(compliance_fee, seller); }
+	    	
+        else {
+
+	    	status = contract_status.DOC_REJECTED; //The buyer decides to terminate the contract
+
+            // split the money owed to the fintech and the buyer
+            setBalances(defect_fee, buyer); }
+            
+        emit BuyerDecision(waive);
+        }
+    
 	// ----------------------------------------- Seller Domain -----------------------------------------  //
 	
     function sellerUpload(string memory hash_seller) public onlySeller {
@@ -149,6 +197,7 @@ contract LetterCredit is Ownable{
 		
 	    docu_hashs[seller] = hash_seller;
 	    status = contract_status.SELLER_UPLOADED;
+	    emit SellerUpload();
 	}
 	
     // ----------------------------------------- Fintech Domain -----------------------------------------  //
@@ -159,69 +208,73 @@ contract LetterCredit is Ownable{
         This enables the seller to retrieve the money */
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
-        uint money = address(this).balance;
-        
         // No discrepancies scenario
         if (_compliance == true) {
             
     	    status = contract_status.DOC_OK; 
-    
-            uint commission; 
-            commission = money.mul(commission_cost)/100; 
             
             // split the money owed to the fintech and the seller
-    	    balance[seller] = (money - commission);
-        	balance[fintech] = (money - balance[seller]);}
+            setBalances(compliance_fee, seller); }
         	
     	// discrepancies scenario 
     	else {
             
         	status = contract_status.DOC_DEFECT; 
-        	
-            uint defect;
-            defect = money.mul(defect_fee)/100; 
     
-            // split the money owed to the buyer and the fintech
-            balance[buyer] = (money - defect);
-    	    balance[fintech] = money - balance[buyer];
-            }
+            // split the money owed to the fintech and the buyer
+            setBalances(defect_fee, buyer);}
+            
+        emit ComplianceChecked();    
         }
-    
-    
-    function sendMoney() public payable onlyOwner{
-        
-        require(status == contract_status.DOC_DEFECT || status == contract_status.DOC_OK , "Invalid status");
-        
-        uint amount_seller = balance[seller];
-	    uint amount_fintech = balance[fintech];
-	    uint amount_buyer = balance[buyer];
-	    
-	    balance[seller] = 0;
-	    balance[buyer] = 0;
-	    balance[fintech] = 0;
-	    	
-	    //works like transfer function but avoid reentrancy
-    	(bool success_seller,) = seller.call{value : amount_seller}("");
-    	require(success_seller);
-    	(bool success_fintech,) = fintech.call{value : amount_fintech}("");
-    	require(success_fintech);
-		(bool success_buyer,) = buyer.call{value : amount_buyer}("");
-    	require(success_buyer);
-		
-		status = contract_status.MONEY_SENT;
-		assert(check_Contract_Balance() ==0);
-	    	
-    }
 	
-	
-	/* selfdestruct the contract and give all the money 
-    *  to the fintech (nice fail-safe mechanism but trust required */
+	/*
+	*  @dev selfdestruct the contract and give all the money 
+    *  to the fintech (nice fail-safe mechanism but trust required) 
+    */
     function destroycontract() public payable onlyOwner{
         selfdestruct(fintech);
     }
 	
 	
 	// ----------------------------------------- Mixed Domain -----------------------------------------  //
+	
+	function setBalances(uint commission_fee, address user_payable) internal {
+	    
+	    uint contract_money = address(this).balance;
+        uint commission;
+        
+        commission = contract_money.mul(commission_fee)/100; 
+
+        // split the money owed to the user (buyer or seller) and to the fintech
+        balance[user_payable] = (contract_money - commission);
+	    balance[fintech] = contract_money - balance[user_payable];
+	}
+	
+	/*
+	*  @dev let a user withdraw his due money
+    */
+    function withdrawFunds() public payable {
+        
+        // can use openzeppelin or https://github.com/kieranelby/KingOfTheEtherThrone/blob/v1.0/contracts/KingOfTheEtherThrone.sol
+        // to make it more complex and safe, e.g. managing the amount of gas used
+        
+        // can only withdraw funds when the contract is resolved
+        require(status == contract_status.DOC_REJECTED || status == contract_status.DOC_OK , "Invalid status");
+        
+        // check amount due to user, and set it to zero: Check-Effects-Interaction pattern
+        address user = msg.sender;
+        uint amount = balance[user];
+        balance[user] = 0;
+        
+        // to avoid emitting irrelevant events
+        require(amount > 0, "no money due to this address");
+        
+	    //works like transfer function but avoids reentrancy
+    	(bool success,) = user.call{value : amount}("");
+    	require(success);
+    	
+    	emit Withdrawn(user);
+    }
 	
 	function See_Doc_Hash( address _user) public view returns(string memory){
 	    require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller);
@@ -235,16 +288,15 @@ contract LetterCredit is Ownable{
         return address(this).balance;
     }
     
-    
-     //Some debug functions
-	function getStatus() public view returns(LetterCredit.contract_status) {
-		return status;
-	}
-	
-	function getTime() public view returns(LetterCredit.contract_time) {
-		return time;
-	}
-	
-    
 }
 	// ----------------------------------------- End -----------------------------------------           //
+	
+	
+contract evilGenius {
+    /*
+	*  @dev makes a payment to this address fail
+    */
+    function revertBonanza() public payable {
+        revert("ihih evil genius at it again!");
+    }
+}
