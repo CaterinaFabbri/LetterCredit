@@ -19,7 +19,8 @@
         
       * [Gio] Consider implementing a **deadline for voting**, after which votes are counted and the compliance is automatically set. Let the deadline be automatically defined when the seller uploads the document, and it consists in a fixed number of days (e.g. 3) after the uploading [in the future the fintech will set this parameter upon seeing the Letter of Credit from the buyer, so it's flexible based on how difficult it is to check compliance for the documents]. 
       Caveat: this deadline must not surpass the main deadline. If this happens, revert the transaction, so the seller will not be able to upload the document. It will be up to the buyer to decide whether to extend the main deadline or not 
-      ** [Gio] I don't think the banks should have a deadline equal to the one of the sender. Indeed, ler's suppose the extreme case where the seller upload takes place the last day of the period. It would be unfeasible for the banks to provide a feedback the very day. I think banks should have a deadline independent from the one of the seller **
+      
+      ** [Gio] I don't think the banks should have a deadline equal to the one of the sender. Indeed, let's suppose the extreme case where the seller upload takes place the last day of the period. It would be unfeasible for the banks to provide a feedback the very day. I think banks should have a deadline independent from the one of the seller **
 
       * [Eug] Adjust the payment of fintech/buyer/seller & other minor changes
 
