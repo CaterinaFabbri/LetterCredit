@@ -87,7 +87,8 @@ contract Variables {
     
     // true if the fintech has given right to vote
     mapping(address => bool)  allowed_to_vote;
-
+    
+    address[] voter_addresses;
     
 
 
@@ -119,7 +120,8 @@ contract Variables {
     // define fees held by the fintech company in case of compliance,
     // and of no compliance
     uint defect_fee; 
-    uint compliance_fee;   
+    uint compliance_fee; 
+    address[] winning_address;
 
     
 }
@@ -182,6 +184,7 @@ contract Ballot is Ownable, Events, Variables {
         sender.voted = true;
         sender.vote = proposal;
         proposals[proposal].voteCount ++;
+        voter_addresses.push(msg.sender);
     }
 
     function winningProposal() onlyOwner public view returns (uint winningProposal_){
@@ -193,8 +196,21 @@ contract Ballot is Ownable, Events, Variables {
             }
         }
     }
+        
+    function voteAccordingMajority() onlyOwner public  {
+    
+        for (uint p = 0; p < voter_addresses.length; p++) {
+            
+            address voter_address = voter_addresses[p];
 
-}
+            if (voters[voter_address].vote == winningProposal()) {
+                winning_address.push(voter_address);
+            }
+            }
+        }
+    
+    }
+
 
 /*********************************************************************************************************************************************************/
 
@@ -341,7 +357,6 @@ contract LetterCredit is Ballot {
             // split the money owned to the fintech and the seller
             setBalances(compliance_fee, seller); 
             
-
         }
         	
     	// discrepancies scenario 
@@ -383,12 +398,25 @@ contract LetterCredit is Ballot {
 	    
 	    uint contract_money = address(this).balance;
         uint commission;
-        
+        uint fintech_money;
         commission = contract_money.mul(commission_fee)/100; 
 
-        // split the money owed to the user (buyer or seller) and to the fintech
+        // split the money between the user (buyer or seller), to the fintech and 
+        // to the banks the voted according the majority. 
+        
         balance[user_payable] = (contract_money - commission);
-	    balance[fintech] = contract_money - balance[user_payable];
+        // 40% of the commission fee is of the fintech 
+        fintech_money = commission.mul(40)/100;
+	    balance[fintech] = fintech_money;
+	    
+	    // And the 60% of the commission fee belongs to those that voted according
+	    // to the majority.
+	    voteAccordingMajority();
+	    uint banks_money = (commission - fintech_money).div(winning_address.length);
+	    
+	    for(uint i=0; i<winning_address.length; i++){
+	        balance[winning_address[i]] = banks_money;
+        }
 	   
 	}
 	
