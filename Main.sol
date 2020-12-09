@@ -395,7 +395,14 @@ contract LetterCredit is Ballot {
     
     	// ----------------------------------------- Mixed Domain -----------------------------------------  //
 
-
+    function getStatus() external view returns (contract_status) {
+        return status;
+    }
+    
+    function getTimeStatus() external view returns (contract_time) {
+        return time;
+    }
+    
 	function setBalances(uint commission_fee, address user_payable) internal {
 	    
 	    uint contract_money = address(this).balance;
