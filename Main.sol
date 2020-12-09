@@ -187,7 +187,9 @@ contract Ballot is Ownable, Events, Variables {
         voter_addresses.push(msg.sender);
     }
 
-    function winningProposal() onlyOwner public view returns (uint winningProposal_){
+    function winningProposal() internal view returns (uint winningProposal_){
+        // Before it was OnlyOwner, but it is called also inside voteAccordingMajority
+        // ( inside waiveDiscrepancies)
         uint winningVoteCount = 0;
         for (uint p = 0; p < proposals.length; p++) {
             if (proposals[p].voteCount > winningVoteCount) {
@@ -197,7 +199,7 @@ contract Ballot is Ownable, Events, Variables {
         }
     }
         
-    function voteAccordingMajority() onlyOwner public  {
+    function voteAccordingMajority() internal  {
     
         for (uint p = 0; p < voter_addresses.length; p++) {
             
