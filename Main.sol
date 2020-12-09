@@ -5,12 +5,12 @@ pragma solidity 0.7.5;
 // NOTE: need to set an higher gas limit 
 
 // LATEST CHANGES: 
-// removed the array with voters
-// removed the replenish votes function
-// using emits to keep track of who can vote (can feed them also a document or the name of the bank)
-// added the function to remove the right to vote
-// removed fintech from the constructor arguments, now 33,33% faster to deploy :-)
-// now voting can happen only if contract status is SELLER_UPLOADED
+// aggregate all the improvements done in single file
+// the money are split from the banks that take part in the voting and voted according to the majority.
+// In order to avoid the fintech to upload money and use those that are already in the contract + 
+// using functions already written the split works as follow: the fintech retrives a percentage
+// of the fee (now it is set to 40% but can be changed), the remain 60% of the commission fee it is 
+// split evenly across the banks. In this way we avoid the fintech to upload the ether.
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
