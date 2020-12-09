@@ -15,30 +15,119 @@ pragma solidity 0.7.5;
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 
-contract Ballot is Ownable {
+contract Events {
     
-    // we define it here to allow banks to vote only when status is SELLER_UPLOADED
-    // probably it's better to create another contract which only stores variables, which are 
-    // then inherited, so we avoid this ugly thing pretty easily
-    enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT,DOC_REJECTED, MONEY_SENT} contract_status status;
+    // -----------------------------------------  Ballot Domain  ----------------------------------------- //
     
+    // signal that fintech gives the right to vote    
+    event NewVoter(address voter_address);
+    // signal that fintech removes the right to vote
+    event RemovedVoter(address voter_address);
+
+    // -----------------------------------------  LetterCredit Domain  ----------------------------------------- //
+
+    // signal the start of the contract
+    event ContractDeployed(uint deadline);
+    
+    // signal that the buyer has uploaded some money
+    event BuyerInstallment(uint256 amount);
+    
+	// signal that the seller has uploaded the document
+	event SellerUpload();
+	
+    // signal an extension of the deadline
+    event Deadline_extension(uint deadline);
+    
+	// signal that the Fintech has evaluated compliance of seller's document
+	event ComplianceChecked();
+	
+	// signal that the buyer has decided either to waive or to end the transaction 
+	event BuyerDecision(bool waive);
+	
+    // signal that someone has withdrawn money
+    event Withdrawn(address withdrawer);
+    
+}
+
+contract Variables {
+    
+    // -----------------------------------------  Ballot Domain  ----------------------------------------- //
+    
+    // keep track of the contract status
+    enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, 
+                            DOC_OK, DOC_DEFECT,DOC_REJECTED, 
+                            MONEY_SENT} contract_status status;
+    
+    // keep track of the voting deadline
+    enum voting_time {ON_TIME, OUT_OF_TIME} voting_time v_time;
+    
+    // keep track of whether the bank already voted (voted), 
+    // and the index of the voted proposal (vote)
     struct Voter {
-        bool voted;  // if true, that person already voted
-        uint vote;   // index of the voted proposal
+        bool voted;  
+        uint vote;   
     }
+    mapping(address => Voter)  voters;
     
+
+    // keep track of the number of accumulated votes for each proposal name
     struct Proposal {
         string name;   // short name (up to 32 bytes)
-        uint voteCount; // number of accumulated votes
+        uint voteCount; 
     }
+    Proposal[] public proposals;
     
 
-    mapping(address => Voter)  voters;
+    // voting deadline: set by the fintech (days), and starts when the seller 
+    // uploads the documents.
+    uint public v_deadline;
+    
+    // records when the seller uploads the documents
+    uint _UploadTime;
+    
+    // true if the fintech has given right to vote
     mapping(address => bool)  allowed_to_vote;
-    Proposal[] public proposals;
 
-    event NewVoter(address voter_address);
-    event RemovedVoter(address voter_address);
+    
+
+
+    // -----------------------------------------  LetterCredit Domain  ----------------------------------------- //
+    
+    
+    // define the addresses of the parties involved
+    address payable public buyer;
+    address payable public seller;
+    address payable public fintech;
+    
+    // checks whether the seller is on time to upload the documents
+    enum contract_time {ON_TIME, OUT_OF_TIME} contract_time time;
+    
+    // define deadline, and extension (set by the buyer)
+    uint public deadline;
+    uint extension;
+    
+    // in case the buyer wants to waive discrepancies, it is set to true
+    bool waive; 
+
+    // records the balance for each player
+    mapping(address => uint) balance;
+    
+    // records the document hash for each player (bytes32 in production?)
+    mapping(address => string) docu_hashs;
+    
+
+    // define fees held by the fintech company in case of compliance,
+    // and of no compliance
+    uint defect_fee; 
+    uint compliance_fee;   
+
+    
+}
+
+
+contract Ballot is Ownable, Events, Variables {
+    
+    using SafeMath for uint;
     
     constructor() {
         
@@ -52,6 +141,7 @@ contract Ballot is Ownable {
             }));
     }
     
+
     function giveRightToVote(address voter) public onlyOwner {
         require(allowed_to_vote[voter] == false , "The user is already allowed to vote");
         // below check isn't required nor useful as of now
@@ -67,7 +157,13 @@ contract Ballot is Ownable {
         allowed_to_vote[voter] = false;
         emit RemovedVoter(voter);    
     }
-
+    
+    function VotingEndTime(uint v_number_of_days) external onlyOwner {
+        v_deadline = _UploadTime.add(v_number_of_days * 1 days);
+        //v_deadline = _UploadTime.add(v_number_of_days); //this is just in seconds to test whether it works fine
+        v_time = voting_time.ON_TIME;
+    }
+    
     /* let a bank vote, modifying its Voter struct accordingly */
     function vote(uint proposal) public {
         require(status == contract_status.SELLER_UPLOADED, "Can't vote on a document not yet uploaded");
@@ -75,22 +171,27 @@ contract Ballot is Ownable {
         require(isbank == true, "must be allowed to vote");
         Voter storage sender = voters[msg.sender];
         require(!sender.voted, "Already voted.");
+        
+        if (block.timestamp >= v_deadline) {
+	        
+	        v_time = voting_time.OUT_OF_TIME;
+	    }
+	    
+	    require(v_time == voting_time.ON_TIME, "Invalid status, status is not ON_TIME");
+	    
         sender.voted = true;
         sender.vote = proposal;
         proposals[proposal].voteCount ++;
     }
 
-    function winningProposal() onlyOwner public view returns (string memory winnerName_){
+    function winningProposal() onlyOwner public view returns (uint winningProposal_){
         uint winningVoteCount = 0;
-        uint winningProposal_ = 0;
         for (uint p = 0; p < proposals.length; p++) {
             if (proposals[p].voteCount > winningVoteCount) {
                 winningVoteCount = proposals[p].voteCount;
                 winningProposal_ = p;
             }
         }
-        winnerName_ = proposals[winningProposal_].name;
-        return(winnerName_);
     }
 
 }
@@ -100,34 +201,7 @@ contract Ballot is Ownable {
 contract LetterCredit is Ballot {
     
     using SafeMath for uint;
-    
-    // define the addresses of the parties invovled
-    address payable public buyer;
-    address payable public seller;
-    address payable public fintech;
-    address address_ballot;
 
-    
-    mapping(address => uint) balance;
-     // can be made bytes32 in production, more efficient
-    mapping(address => string) docu_hashs;
-    
-    //define deadline
-    uint public deadline;
-    uint extension;
-    bool waive; 
-
-    //define all the statuses that the contract may have
-    //enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT,DOC_REJECTED, MONEY_SENT} contract_status status;
-    enum contract_time {ON_TIME, OUT_OF_TIME} contract_time time;
-    
-    //define fees held by the fintech company
-    uint defect_fee; // fee in case of no compliance
-    uint commission_cost; // fee in case of compliance
-    
-    // signal that the buyer uploaded some money
-    event buyer_installment(uint256 amount);
-	
 	
     constructor (address payable _buyer,  address payable _seller) payable{
         
@@ -144,7 +218,7 @@ contract LetterCredit is Ballot {
         balance[seller] = 0;
         balance[fintech] = 0;
         
-        commission_cost = 10; // in %
+        compliance_fee = 20; // in %
         defect_fee = 1;
     }
     
@@ -164,7 +238,7 @@ contract LetterCredit is Ballot {
     // note: the functions accessible by the buyer come first, than those of the seller, then the fintech and finally the mixed ones
 
     function Ether_Upload() payable public onlyBuyer{ 
-        emit buyer_installment(msg.value);
+        emit BuyerInstallment(msg.value);
     }
 
     function SetEndTime(uint _number_of_days) internal onlyBuyer {
@@ -173,60 +247,61 @@ contract LetterCredit is Ballot {
         time = contract_time.ON_TIME;
     }
     
-    function buyerUpload(string memory hash_buyer, uint _Number_of_Days) external onlyBuyer {
+	
+    function buyerUpload(string memory hash_buyer, uint _number_of_days) external payable onlyBuyer {
 	    require(status == contract_status.ON, "Invalid status, status is not ON");
 	   
+        // upload the letter of credit	   
 	    docu_hashs[buyer] = hash_buyer;
 	    status = contract_status.BUYER_UPLOADED;
 	    
-	    SetEndTime(_Number_of_Days);
+	    // set the deadline
+	    SetEndTime(_number_of_days);
+	    
+	    // eventually upload a first installment
+	    Ether_Upload();
+	    
+    	emit ContractDeployed(deadline);
 	}
 	
-	function ExtendTime(uint _extension) external onlyBuyer{
-        
+
+	
+	function ExtendTime(uint _extension) external onlyBuyer {
         extension = _extension;
-        deadline = block.timestamp.add(extension);
-        
+        deadline = block.timestamp.add(extension * 1 days);
+        // deadline = block.timestamp.add(extension);
+
         time = contract_time.ON_TIME;
+        emit Deadline_extension(deadline);
 	}
+    
 	
-	 function waiveDiscrepancies(bool _waive) public onlyBuyer{
+    function waiveDiscrepancies(bool _waive) public onlyBuyer {
         
         // In case the documents don't comply, the buyer can
         // decide whether to wave the discrepancies or terminate the
         // contract
         
-        require(status == contract_status.DOC_DEFECT, "Invalid status");
+        require(status == contract_status.DOC_DEFECT, "Can only use this function if there are discrepancies");
 
         waive = _waive;
 
-        uint money = address(this).balance;
-
         if (waive) {
 
-		    status = contract_status.DOC_OK; //The buyer decides to wave the discrepancies
+		    status = contract_status.DOC_OK; //The buyer decides to waive the discrepancies
 
-            uint commission; 
-            commission = money.mul(commission_cost)/100; 
-
-            // transfer all the money which is in the contract between seller and fintech
-		    balance[seller] = (money - commission);
-	    	balance[fintech] = (money - balance[seller]);
-
-        } else {
+            // split the money owed to the fintech and the seller
+            setBalances(compliance_fee, seller); }
+	    	
+        else {
 
 	    	status = contract_status.DOC_REJECTED; //The buyer decides to terminate the contract
 
-            uint defect;
-            defect = money.mul(defect_fee)/100; 
-
-            // transfer all the money which is in the contract between buyer and fintech
-            balance[buyer] = (money - defect);
-		    balance[fintech] = money - balance[buyer];
-
-
+            // split the money owed to the fintech and the buyer
+            setBalances(defect_fee, buyer); }
+            
+        emit BuyerDecision(waive);
         }
-    }
 
 	// ----------------------------------------- Seller Domain -----------------------------------------  //
 	
@@ -244,6 +319,9 @@ contract LetterCredit is Ballot {
 		
 	    docu_hashs[seller] = hash_seller;
 	    status = contract_status.SELLER_UPLOADED;
+	    _UploadTime = block.timestamp;
+
+	    emit SellerUpload();
 	}
 	
     // ----------------------------------------- Fintech Domain -----------------------------------------  //
@@ -255,25 +333,29 @@ contract LetterCredit is Ballot {
         
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
-        uint money = address(this).balance;
         // No discrepancies scenario
-        if (keccak256(bytes(winningProposal())) == keccak256(bytes("Compliant"))){
+        if (winningProposal()==1) {
 
     	    status = contract_status.DOC_OK; 
-    
-            uint commission; 
-            commission = money.mul(commission_cost)/100; 
             
-            // split the money owed to the fintech and the seller
-    	    balance[seller] = (money - commission);
-        	balance[fintech] = (money - balance[seller]);}
+            // split the money owned to the fintech and the seller
+            setBalances(compliance_fee, seller); 
+            
+
+        }
         	
     	// discrepancies scenario 
     	else {
             
-        	status = contract_status.DOC_DEFECT; 
+        	status = contract_status.DOC_DEFECT;
+        	
+        	// split the money owned to the fintech and the buyer
+        	setBalances(defect_fee, buyer);
         	
             }
+        
+        emit ComplianceChecked();    
+
         }
 
 /*    
@@ -283,48 +365,61 @@ contract LetterCredit is Ballot {
         // for the buyer to review.
 	    require(status==contract_status.DOC_DEFECT, "Invalid status, status is not DOC_DEFECT");
 	    docu_hashs[fintech] = hash_fintech;
-
 	}
-
 */    
-    function sendMoney() public payable onlyOwner{
-        
-        // bank can remove maslicious users
-        // it's the best i nterest of each bank to make the transaction go well
-        
-        require(status == contract_status.DOC_REJECTED || status == contract_status.DOC_OK , "Invalid status");
-        
-        uint amount_seller = balance[seller];
-	    uint amount_fintech = balance[fintech];
-	    uint amount_buyer = balance[buyer];
-	    
-	    balance[seller] = 0;
-	    balance[buyer] = 0;
-	    balance[fintech] = 0;
-	    	
-	    //works like transfer function but avoid reentrancy
-    	(bool success_seller,) = seller.call{value : amount_seller}("");
-    	require(success_seller);
-    	(bool success_fintech,) = fintech.call{value : amount_fintech}("");
-    	require(success_fintech);
-		(bool success_buyer,) = buyer.call{value : amount_buyer}("");
-    	require(success_buyer);
-		
-		status = contract_status.MONEY_SENT;
-		assert(check_Contract_Balance() ==0);
-	    	
-    }
-	
-	
-	/* selfdestruct the contract and give all the money 
-    *  to the fintech (nice fail-safe mechanism but trust required */
+
+	/*
+	*  @dev selfdestruct the contract and give all the money 
+    *  to the fintech (nice fail-safe mechanism but trust required) 
+    */
     function destroycontract() public payable onlyOwner{
         selfdestruct(fintech);
     }
+    
+    	// ----------------------------------------- Mixed Domain -----------------------------------------  //
+
+
+	function setBalances(uint commission_fee, address user_payable) internal {
+	    
+	    uint contract_money = address(this).balance;
+        uint commission;
+        
+        commission = contract_money.mul(commission_fee)/100; 
+
+        // split the money owed to the user (buyer or seller) and to the fintech
+        balance[user_payable] = (contract_money - commission);
+	    balance[fintech] = contract_money - balance[user_payable];
+	   
+	}
 	
+	/*
+	*  @dev let a user withdraw his due money
+    */
+    function withdrawFunds() public payable {
+        
+        // can use openzeppelin or https://github.com/kieranelby/KingOfTheEtherThrone/blob/v1.0/contracts/KingOfTheEtherThrone.sol
+        // to make it more complex and safe, e.g. managing the amount of gas used
+        
+        // can only withdraw funds when the contract is resolved
+        require(status == contract_status.DOC_REJECTED || status == contract_status.DOC_OK , "Invalid status");
+        
+        // check amount due to user, and set it to zero: Check-Effects-Interaction pattern
+        address user = msg.sender;
+        uint amount = balance[user];
+        balance[user] = 0;
+        
+        // to avoid emitting irrelevant events
+        require(amount > 0, "no money due to this address");
+        
+	    //works like transfer function but avoids reentrancy
+    	(bool success,) = user.call{value : amount}("");
+    	require(success);
+    	
+    	emit Withdrawn(user);
+    }
+
 	
-	// ----------------------------------------- Mixed Domain -----------------------------------------  //
-	
+
 	function See_Doc_Hash( address _user) public view returns(string memory){
         bool isbank = allowed_to_vote[msg.sender];
         require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller || isbank==true, "not authorized");	    
@@ -340,14 +435,15 @@ contract LetterCredit is Ballot {
     }
     
     
-     //Some debug functions
-	function getStatus() public view returns(LetterCredit.contract_status) {
-		return status;
-	}
-	
-	function getTime() public view returns(LetterCredit.contract_time) {
-		return time;
-	}
 
 }
 	// ----------------------------------------- End -----------------------------------------           //
+	
+    contract evilGenius {
+        /*
+    	*  @dev makes a payment to this address fail
+        */
+        function revertBonanza() public payable {
+            revert("ihih evil genius at it again!");
+        }
+    }
