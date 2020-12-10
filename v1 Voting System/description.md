@@ -12,7 +12,10 @@ It is time for a compliance check. ```diff
 Compliance is set through majority voting, for which there is a deadline. In case a tie happens, we decided to set no-compliance as the default outcome. We have adopted this strategy as we believe that if half of the banks deem the documents as not compliant, it is less risky to leave the decision to the buyer, as we will see in the next step. \
 Only banks which voted according to the majority get a reward. The bank can add or remove banks at each time, emitting an event [maybe we can restrict the adding/removing only when there isn't a voting due]. ```
 
+```html
+<font color="red">
 Results of an election can be checked through `checkCompliance()`, callable by the fintech. In case of compliance, the fees are calculated and the money is sent to seller/banks/fintech. In case of lack of compliance, the buyer can choose whether to waive the discrepancies and proceed with the transactions, thus obtaining the same outcome as just described, or whether to terminate the transactions, getting back his money minus a fee. The buyer can choose the outcome by calling `waiveDiscrepancies()` inputting *true* in the former case and *false* in the latter one.
-
+</font>
+```
 
 `withdrawFunds()` is the function that each player needs to press in order to withdraw the money owed.
