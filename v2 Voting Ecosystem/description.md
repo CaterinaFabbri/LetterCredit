@@ -1,4 +1,4 @@
-**Future Implementation
+## Future Implementation
 
 Deploy the contract **LetterCredit**. \
 As inputs insert the address of the buyer and the seller. The fintech address is the one that deploys the contract.
