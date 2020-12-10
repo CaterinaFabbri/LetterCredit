@@ -7,7 +7,8 @@ The buyer can upload the money in the smart contract through the function `Ether
 
 Then, switch to the seller and use the function `SellerUpload()` to upload the document required by the buyer. To simplify, we assume that only a document needs to be uploaded.
 
-It is time for a compliance check. ```diff ! In this implementation, this step is taken care of by previously appointed banks. \
+It is time for a compliance check. ```diff 
+! In this implementation, this step is taken care of by previously appointed banks. \
 Compliance is set through majority voting, for which there is a deadline. In case a tie happens, we decided to set no-compliance as the default outcome. We have adopted this strategy as we believe that if half of the banks deem the documents as not compliant, it is less risky to leave the decision to the buyer, as we will see in the next step. \
 Only banks which voted according to the majority get a reward. The bank can add or remove banks at each time, emitting an event [maybe we can restrict the adding/removing only when there isn't a voting due]. ```
 
