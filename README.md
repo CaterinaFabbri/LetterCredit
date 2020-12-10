@@ -9,7 +9,7 @@ The **General Documents** folder contains: `Log.md`, illustrating our general wo
 ## General rules for contract deployment
 
 In the following image we describe the pipeline and workflow of our most basic prototype, the **Central Fintech** one. While the other prototypes add complexity, the general framework is the same. We also provide a brief general description of the steps to be performed.
-![plot](https://github.com/CaterinaFabbri/LetterCredit/blob/main/Documents%20and%20Images/Basic%20Structure.png)
+![plot](https://github.com/CaterinaFabbri/LetterCredit/blob/main/Documents%20and%20Images/Basic%20Structure.png) /
 
 Deploy the contract **LetterCredit**. \
 As inputs insert the address of the buyer and the seller. The fintech address is the one that deploys the contract.
