@@ -1,5 +1,5 @@
 # LetterCredit
-# 1. General rule to deploy the contract: 
+## 1. General rule to deploy the contract: 
 Deploy the contract LetterCredit. As inputs insert the address of the buyer and the seller. 
 The fintech address is the one that deploys the contract. 
 
