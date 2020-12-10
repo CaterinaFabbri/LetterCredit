@@ -1,6 +1,20 @@
 # Meeting Roadmap
 
-**07-12 Unify branches and polish pre-Petriconi check**
+**09-12 refinements, front-end integration**
+
+- Todoes for next meeting:
+  * Let the contract be able to receive payments through Metamask accounts
+  * Keep working on the more advanced version
+  * Start working on the presentation
+
+- What we improved since previous meeting:
+  * Working prototype for the bank ecosystem
+  * Adjusted the deadline
+  * Implemented rewards for banks
+  * Implementing the possibility for the Fintech to remove banks from the system
+  * Improved the repository aspect  
+
+**07-12 Unify branches and polish pre-professor check**
 
 - Todoes for next meeting:
   - Mandatory:
@@ -20,14 +34,14 @@
       * [Gio] Consider implementing a **deadline for voting**, after which votes are counted and the compliance is automatically set. Let the deadline be automatically defined when the seller uploads the document, and it consists in a fixed number of days (e.g. 3) after the uploading [in the future the fintech will set this parameter upon seeing the Letter of Credit from the buyer, so it's flexible based on how difficult it is to check compliance for the documents]. 
       Caveat: this deadline must not surpass the main deadline. If this happens, revert the transaction, so the seller will not be able to upload the document. It will be up to the buyer to decide whether to extend the main deadline or not 
       
-      ** [Gio] I don't think the banks should have a deadline equal to the one of the sender. Indeed, let's suppose the extreme case where the seller upload takes place the last day of the period. It would be unfeasible for the banks to provide a feedback the very day. I think banks should have a deadline independent from the one of the seller **
+      ** [Gio] I don't think the banks should have a deadline equal to the one of the sender. Indeed, let's suppose the extreme case where the seller upload takes place the last day of the period. It would be unfeasible for the banks to provide a feedback the very day. I think banks should have a deadline independent from the one of the seller ** [Further discussed in the subsequent meeting, objection approved!]
 
       * [Eug] Adjust the payment of fintech/buyer/seller & other minor changes
 
       * Check that the deadline works as intended (number of days), and maybe let the deadline be visible as a date (e.g. deadline -> dd/mm/aaaa) 
 
   - Experimental
-      * Let the seller have a **fixed number of slots** (like a fixed array) in which it can upload the hashes of each document he needs to provide. 
+      * [Eug, Cate] Let the seller have a **fixed number of slots** (like a fixed array) in which it can upload the hashes of each document he needs to provide. 
       The number of documents is set by the buyer according to his Letter of Credit.
       Compliance should be checked for each document, and the whole procedure is compliant only if all individual documents are compliant.
       The buyer may 'force' a document to be considered compliant to signal that he waives the compliance for that document
