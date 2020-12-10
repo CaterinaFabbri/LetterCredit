@@ -1,7 +1,7 @@
 # LetterCredit
 ## 1. General rule to deploy the contract:
 
-Deploy the contract **LetterCredit**. \\
+Deploy the contract **LetterCredit**. \
 As inputs insert the address of the buyer and the seller. The fintech address is the one that deploys the contract.
 
 Then, switch to the buyer address. It is time to send a document that explicates the files and details required to consider the transaction successful and a deadline for the seller (function `buyerUpload()` with as input the hash of the 
