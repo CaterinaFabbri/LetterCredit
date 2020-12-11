@@ -127,6 +127,8 @@ contract Variables {
 }
 
 
+//I helped with this one.
+
 contract Ballot is Ownable, Events, Variables {
     
     using SafeMath for uint;
