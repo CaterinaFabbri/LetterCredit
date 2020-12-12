@@ -16,10 +16,10 @@ More detailed instructions and information are specified in each relevant folder
 
 
 ## How to use the front-end
-There is also a [website](#https://eth-app-voting.yenerk95.vercel.app/) which allows to use the contract functionalities outside of Remix, through a Metamask integration.
+We created a [website](https://eth-app-voting.yenerk95.vercel.app/) which allows to use the contract functionalities outside of Remix, through a Metamask integration.
 In order to use the website, one needs to first deploy the contract in Remix, using Injected Web3 and a Metamask Testnet. <br/>
 Then, the contract address shall be copypasted into the form on the top of the website. Subsequently, the workflow is as in Remix. <br/>
 To upload a document, click on the logo and an IPFS hash will automatically be created. To actually upload the hash into the smart contract, it suffices to click `Buyer Upload` (specifying as argument only the number of days the seller will have in order to upload the documents) or `Seller Upload`.
 
 
-[Here](#https://github.com/yenerk95/eth-app) is the Github repo relative to the website
+[Here](https://github.com/yenerk95/eth-app) is the Github repo relative to the website
