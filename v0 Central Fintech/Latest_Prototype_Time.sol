@@ -1,21 +1,11 @@
 pragma solidity 0.7;
 //"SPDX-License-Identifier: UNLICENSED"
 
-// LATEST CHANGES: 
-// fintech is the msg.sender
-// created an internal function to settle balances, to avoid code-repetition
-// added an evil genius contact to test fund withdrawal
-// changed the way funds are withdrawn, to make the process more secure
-// added tons of events, so each user is able to now able to see what's going on, while preserving privacy
-// now the buyer can set an ether value when uploading the letter of credit document, to upload a first installment
-
-
-
+// need to click on the error on the left, and remove 'internal' from the constructor
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 
 /*
-This contract is the union of the "Money Handler.sol" and "prototype.sol":
 1) Ether_Upload() -> instead of creating functions that allows to pay using different installments, Ether_Upload give the possiblity only to 
 the buyer to upload money into the contract, therefore the buyer can upload the money in any moment and so also pay in installments.
 2) buyerUpload() -> buyer requests documents (implement Ipfs)
@@ -32,8 +22,11 @@ Note: The fintech firm has no interest in behaving improperly as it has a reputa
 11) SetEndTime() -> lets the buyer set the expiration time of the letter of credit (in number of days)
 12) ExtendTime() -> gives the buyer the possibility to extend time after the expiration date of the letter of credit
 */
-//Upload document on IPFS and encrypt using public code of seller (and after buyer) 
 
+
+/*
+* @dev events will allow each user to see what's going on, while preserving privacy as much as possible
+*/
 contract Events {
     
     // signal the start of the contract
@@ -63,8 +56,7 @@ contract LetterCredit is Ownable, Events{
     
     using SafeMath for uint;
     
-    //in order to call SimpleStorage
-    address addressS;
+    // used by the buyer in case of no compliance
     bool waive;
     
     // define the addresses of the parties invovled
@@ -73,18 +65,17 @@ contract LetterCredit is Ownable, Events{
     address payable public fintech;
     
     mapping(address => uint) balance;
-     // can be made bytes32 in production, more efficient
     mapping(address => string) docu_hashs;
     
     //define deadline
     uint public deadline;
     uint extension;
     
-    //define all the status that the contract may have
+    //define all the statuses that the contract may have
     enum contract_status {ON, BUYER_UPLOADED, SELLER_UPLOADED, DOC_OK, DOC_DEFECT, DOC_REJECTED} contract_status status;
     enum contract_time {ON_TIME, OUT_OF_TIME} contract_time time;
     
-    //define fees held by the fintech company
+    // fees held by the fintech company, as percentage of total money uploaded
     uint defect_fee;      // fee in case of no compliance
     uint compliance_fee;  // fee in case of compliance
 	 
@@ -94,8 +85,7 @@ contract LetterCredit is Ownable, Events{
         and initializes the variables */
         fintech = msg.sender;
         buyer = _buyer;
-        seller = _seller;
-        
+        seller = _seller;    
         
         status = contract_status.ON;
         
@@ -103,7 +93,7 @@ contract LetterCredit is Ownable, Events{
         balance[seller] = 0;
         balance[fintech] = 0;
         
-        compliance_fee = 10; // in %
+        compliance_fee = 10; 
         defect_fee = 1;
     }
     
@@ -120,10 +110,20 @@ contract LetterCredit is Ownable, Events{
     // -----------------------------------------  Buyer Domain  ----------------------------------------- //
     // note: the functions accessible by the buyer come first, than those of the seller, then the fintech and finally the mixed ones
 
+    /**
+    * @dev allow the buyer to upload money at any time
+    */
     function Ether_Upload() payable public onlyBuyer{ 
         emit BuyerInstallment(msg.value);
     }
     
+    /*
+    * @dev used by the buyer to upload the letter of credit hash, to set the
+    *      deadline for the seller to upload his documents, and to feed an initial
+    *      installment to the contract.
+    * @params hash_buyer hash from which to retrieve the document,
+    *	      _number_of_days num days the seller has from current day to upload his docs
+    */
     function buyerUpload(string memory hash_buyer, uint _number_of_days) external payable onlyBuyer {
 	    require(status == contract_status.ON, "Invalid status, status is not ON");
 	   
@@ -139,13 +139,21 @@ contract LetterCredit is Ownable, Events{
 	    
     	emit ContractDeployed(deadline);
 	}
-	
+
+    /*
+    * @dev used by the buyer to set the deadline. Called by prev. function.
+    * @params _number_of_days num days the seller has from current day to upload his docs
+    */
     function SetEndTime(uint _number_of_days) internal onlyBuyer {
         deadline = block.timestamp.add(_number_of_days * 1 days);
         //deadline = block.timestamp.add(_number_of_days); 
         time = contract_time.ON_TIME;
     }
-	
+    
+	/*
+	* @dev allows the buyer to extend the deadline.
+	* @params _extension num of additional days the seller will have 
+	*/
 	function ExtendTime(uint _extension) external onlyBuyer {
         extension = _extension;
         deadline = block.timestamp.add(extension * 1 days);
@@ -155,12 +163,13 @@ contract LetterCredit is Ownable, Events{
         emit Deadline_extension(deadline);
 	}
     
+    /*
+    * @dev allows the buyer to decide whether to waive the discrepancies or terminate the
+    * contract, in case the documents don't comply.
+    * @params _waive false to terminate transaction, true to waive discrepancies
+    */
     function waiveDiscrepancies(bool _waive) public onlyBuyer {
-        
-        // In case the documents don't comply, the buyer can
-        // decide whether to wave the discrepancies or terminate the
-        // contract
-        
+    
         require(status == contract_status.DOC_DEFECT, "Can only use this function if there are discrepancies");
 
         waive = _waive;
@@ -184,8 +193,11 @@ contract LetterCredit is Ownable, Events{
     
 	// ----------------------------------------- Seller Domain -----------------------------------------  //
 	
-    function sellerUpload(string memory hash_seller) public onlySeller {
-    //The seller, after the buyer has uploaded the document and the money, upload his document. 
+	/*
+    * @dev allows the Seller to upload his document.
+    * @params hash_seller hash from which to retrieve the document
+    */
+    function sellerUpload(string memory  hash_seller) public onlySeller {
     
 	    require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");
 	    
@@ -203,10 +215,14 @@ contract LetterCredit is Ownable, Events{
 	
     // ----------------------------------------- Fintech Domain -----------------------------------------  //
 	
+	
+   /*
+    * @dev allows the fintech to update the compliance status upon verification of documents.
+    *      This can enable the seller to retrieve the money. 
+    * @params _compliance set to true if there is compliance
+    */
     function setCompliance(bool _compliance) public onlyOwner{
     
-        /* Let the fintech update the compliance status upon verification of documents.
-        This enables the seller to retrieve the money */
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
         // No discrepancies scenario
@@ -239,6 +255,12 @@ contract LetterCredit is Ownable, Events{
 	
 	// ----------------------------------------- Mixed Domain -----------------------------------------  //
 	
+	/*
+    * @dev internally called function to settle balances,
+    *      in both cases of compliance and no compliance. 
+    * @params commission_fee % of total money in the contract taken by the fintech
+    *         user_payable address of user who will receive the money minus the fee
+    */
 	function setBalances(uint commission_fee, address user_payable) internal {
 	    
 	    uint contract_money = address(this).balance;
@@ -277,11 +299,17 @@ contract LetterCredit is Ownable, Events{
     	emit Withdrawn(user);
     }
 	
-	function See_Doc_Hash( address _user) public view returns(string memory){
+	/*
+	*  @dev let the parties retrieve the uploaded hashes of documents
+    */
+	function See_Doc_Hash(address _user) public view returns(string memory){
 	    require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller);
 	    return docu_hashs[_user];
 	}
 
+    /*
+	*  @dev let the parties check the money in the contract
+    */
     function check_Contract_Balance() public view returns(uint){
         
         /* Give to each of the parties involved the possibility of checking the contract balance */
@@ -292,12 +320,11 @@ contract LetterCredit is Ownable, Events{
 }
 	// ----------------------------------------- End -----------------------------------------           //
 	
-	
+/*
+*  @dev makes a payment to this address fail
+*/
 contract evilGenius {
-    /*
-	*  @dev makes a payment to this address fail
-    */
     function revertBonanza() public payable {
-        revert("ihih evil genius at it again!");
+        revert("evil genius at it again!");
     }
 }
