@@ -244,6 +244,16 @@ contract LetterCredit is Ownable, Events{
         emit ComplianceChecked();    
         }
 	
+/*  
+    * @dev In case the documents defect, the fintech can upload a document
+    *      to explain the reason
+    function fintechUpload(string memory hash_fintech) public onlyOwner{
+        
+
+	    require(status==contract_status.DOC_DEFECT, "Invalid status, status is not DOC_DEFECT");
+	    docu_hashs[fintech] = hash_fintech;
+	}
+*/  
 	/*
 	*  @dev selfdestruct the contract and give all the money 
     *  to the fintech (nice fail-safe mechanism but trust required) 
