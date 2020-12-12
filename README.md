@@ -8,14 +8,17 @@ The **General Documents** folder contains: `Log.md`, illustrating our general wo
 
 ## General rules for contract deployment
 
-In the following image we describe the pipeline and workflow of our most basic prototype, the **Central Fintech** one. While the other prototypes add complexity, the general framework is the same.
+In the following image we describe the pipeline and workflow of our most basic prototype, the **Central Fintech** one. While the other prototypes add complexity, the general framework reamins the same. More detailed instructions and information are specified in each relevant folder, highlighting the differences among implementations
 
 
-![plot](https://github.com/CaterinaFabbri/LetterCredit/blob/main/Documents%20and%20Images/Basic%20Structure.png)
+![plot](https://github.com/CaterinaFabbri/LetterCredit/blob/main/Documents%20and%20Images/Basic%20Structure.jpg)
 
 
 ## How to use the front-end
-injected web3, metamask, copy contract address etc.
+There is also a [website](#https://eth-app-voting.yenerk95.vercel.app/) which allows to use the contract functionalities outside of Remix, through a Metamask integration.
+In order to use the website, one needs to first deploy the contract in Remix, using Injected Web3 and a Metamask Testnet. /
+Then, the contract address shall be copypasted into the form on the top of the website. Subsequently, the workflow is as in Remix. /
+To upload a document, click on the logo and an IPFS hash will automatically be created. To actually upload the hash into the smart contract, it suffices to click `Buyer Upload` (specifying as argument only the number of days the seller will have in order to upload the documents) or `Seller Upload`.
 
 
-
+[Here](#https://github.com/yenerk95/eth-app) is the Github repo relative to the website
