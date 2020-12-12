@@ -4,33 +4,30 @@ pragma solidity 0.7.5;
 // Deploy only LetterCredit
 // NOTE: need to set an higher gas limit 
 
-// LATEST CHANGES: 
-// aggregate all the improvements done in single file
-// the money are split from the banks that take part in the voting and voted according to the majority.
-// In order to avoid the fintech to upload money and use those that are already in the contract + 
-// using functions already written the split works as follow: the fintech retrives a percentage
-// of the fee (now it is set to 40% but can be changed), the remain 60% of the commission fee it is 
-// split evenly across the banks. In this way we avoid the fintech to upload the ether.
+// need to click on the error on the left, and remove 'internal' from the constructor
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 
+/*
+* @dev events will allow each user to see what's going on, while preserving privacy as much as possible
+*/
 contract Events {
     
-    // -----------------------------------------  Ballot Domain  ----------------------------------------- //
+    // -----------------------------------------  Ballot Events  ----------------------------------------- //
     
     // signal that fintech gives the right to vote    
     event NewVoter(address voter_address);
     // signal that fintech removes the right to vote
     event RemovedVoter(address voter_address);
 
-    // -----------------------------------------  LetterCredit Domain  ----------------------------------------- //
+    // -----------------------------------------  LetterCredit Events  ----------------------------------------- //
 
     // signal the start of the contract
     event ContractDeployed(uint deadline);
     
     // signal that the buyer has uploaded some money
-    event BuyerInstallment(uint256 amount);
+    event BuyerInstallment();
     
 	// signal that the seller has uploaded the document
 	event SellerUpload();
@@ -49,9 +46,12 @@ contract Events {
     
 }
 
+/*
+* @dev put variables here to ease the reading. Is this safe?
+*/
 contract Variables {
     
-    // -----------------------------------------  Ballot Domain  ----------------------------------------- //
+    // -----------------------------------------  Ballot Variables  ----------------------------------------- //
     
     // keep track of the contract status
     enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, 
@@ -92,7 +92,7 @@ contract Variables {
     
 
 
-    // -----------------------------------------  LetterCredit Domain  ----------------------------------------- //
+    // -----------------------------------------  LetterCredit Variables  ----------------------------------------- //
     
     
     // define the addresses of the parties involved
@@ -122,12 +122,9 @@ contract Variables {
     uint defect_fee; 
     uint compliance_fee; 
     address[] winning_address;
-
     
 }
 
-
-//I helped with this one.
 
 contract Ballot is Ownable, Events, Variables {
     
@@ -148,8 +145,6 @@ contract Ballot is Ownable, Events, Variables {
 
     function giveRightToVote(address voter) public onlyOwner {
         require(allowed_to_vote[voter] == false , "The user is already allowed to vote");
-        // below check isn't required nor useful as of now
-        //require(!voters[voter].voted,"The voter has already voted");
     
         allowed_to_vote[voter] = true;
         emit NewVoter(voter);
@@ -210,10 +205,10 @@ contract Ballot is Ownable, Events, Variables {
             if (voters[voter_address].vote == winningProposal()) {
                 winning_address.push(voter_address);
             }
-            }
         }
-    
     }
+    
+}
 
 
 /*********************************************************************************************************************************************************/
@@ -257,17 +252,30 @@ contract LetterCredit is Ballot {
     // -----------------------------------------  Buyer Domain  ----------------------------------------- //
     // note: the functions accessible by the buyer come first, than those of the seller, then the fintech and finally the mixed ones
 
-    function Ether_Upload() payable public onlyBuyer{ 
-        emit BuyerInstallment(msg.value);
-    }
-
-    function SetEndTime(uint _number_of_days) internal onlyBuyer {
+    /*
+    * @dev allow the buyer to upload money at any time. Using receive
+    *      because it works better with the front-end
+    */
+    receive() external payable onlyBuyer{
+        emit BuyerInstallment();}
+    
+    /*
+    * @dev used by the buyer to set the deadline. Called by prev. function.
+    * @params _number_of_days num days the seller has from current day to upload his docs
+    */
+    function SetEndTime(uint _number_of_days) internal  {
         deadline = block.timestamp.add(_number_of_days * 1 days);
         //deadline = block.timestamp.add(_number_of_days); //this is just in seconds to test whether it works fine
         time = contract_time.ON_TIME;
     }
     
-	
+	/*
+    * @dev used by the buyer to upload the letter of credit hash, to set the
+    *      deadline for the seller to upload his documents, and to feed an initial
+    *      installment to the contract.
+    * @params hash_buyer hash from which to retrieve the document,
+    *	      _number_of_days num days the seller has from current day to upload his docs
+    */
     function buyerUpload(string memory hash_buyer, uint _number_of_days) external payable onlyBuyer {
 	    require(status == contract_status.ON, "Invalid status, status is not ON");
 	   
@@ -278,14 +286,14 @@ contract LetterCredit is Ballot {
 	    // set the deadline
 	    SetEndTime(_number_of_days);
 	    
-	    // eventually upload a first installment
-	    Ether_Upload();
-	    
     	emit ContractDeployed(deadline);
 	}
 	
 
-	
+	/*
+	* @dev allows the buyer to extend the deadline.
+	* @params _extension num of additional days the seller will have 
+	*/
 	function ExtendTime(uint _extension) external onlyBuyer {
         extension = _extension;
         deadline = block.timestamp.add(extension * 1 days);
@@ -295,13 +303,12 @@ contract LetterCredit is Ballot {
         emit Deadline_extension(deadline);
 	}
     
-	
+	    /*
+    * @dev allows the buyer to decide whether to waive the discrepancies or terminate the
+    * contract, in case the documents don't comply.
+    * @params _waive false to terminate transaction, true to waive discrepancies
+    */
     function waiveDiscrepancies(bool _waive) public onlyBuyer {
-        
-        // In case the documents don't comply, the buyer can
-        // decide whether to wave the discrepancies or terminate the
-        // contract
-        
         require(status == contract_status.DOC_DEFECT, "Can only use this function if there are discrepancies");
 
         waive = _waive;
@@ -325,9 +332,11 @@ contract LetterCredit is Ballot {
 
 	// ----------------------------------------- Seller Domain -----------------------------------------  //
 	
+	/*
+    * @dev allows the Seller to upload his document.
+    * @params hash_seller hash from which to retrieve the document
+    */
     function sellerUpload(string memory hash_seller) public onlySeller {
-    //The seller, after the buyer has uploaded the document and the money, upload his document. 
-    
 	    require(status==contract_status.BUYER_UPLOADED, "Invalid status, status is not BUYER_UPLOADED");
 	    
 	    if (block.timestamp >= deadline) {
@@ -346,10 +355,11 @@ contract LetterCredit is Ballot {
 	
     // ----------------------------------------- Fintech Domain -----------------------------------------  //
 	
+	/*
+    * @dev allows the fintech to call a compliance check once voting ended.
+    *      The result of voting determines compliance, according to simple majority 
+    */
     function checkCompliance() public onlyOwner{
-    
-        /* Let the fintech update the compliance status upon verification of documents.
-        This enables the seller to retrieve the money */
         
         require(status == contract_status.SELLER_UPLOADED, "Invalid status, status is not SELLER_UPLOADED");
         
@@ -377,16 +387,6 @@ contract LetterCredit is Ballot {
 
         }
 
-/*    
-    function fintechUpload(string memory hash_fintech) public onlyOwner{
-        
-        // In case the documents defect, the fintech can upload a document
-        // for the buyer to review.
-	    require(status==contract_status.DOC_DEFECT, "Invalid status, status is not DOC_DEFECT");
-	    docu_hashs[fintech] = hash_fintech;
-	}
-*/    
-
 	/*
 	*  @dev selfdestruct the contract and give all the money 
     *  to the fintech (nice fail-safe mechanism but trust required) 
@@ -405,15 +405,18 @@ contract LetterCredit is Ballot {
         return time;
     }
     
+    /*
+    * @dev internally called function to settle balances among the parties, banks included.
+    *      Called in both cases of compliance and no compliance. 
+    * @params commission_fee % of total money in the contract taken by the fintech
+    *         user_payable address of user who will receive the money minus the fee
+    */
 	function setBalances(uint commission_fee, address user_payable) internal {
 	    
 	    uint contract_money = address(this).balance;
         uint commission;
         uint fintech_money;
         commission = contract_money.mul(commission_fee)/100; 
-
-        // split the money between the user (buyer or seller), to the fintech and 
-        // to the banks the voted according the majority. 
         
         balance[user_payable] = (contract_money - commission);
         // 40% of the commission fee is of the fintech 
@@ -458,14 +461,18 @@ contract LetterCredit is Ballot {
     }
 
 	
-
+    /*
+	*  @dev let the parties retrieve the uploaded hashes of documents
+    */
 	function See_Doc_Hash( address _user) public view returns(string memory){
         bool isbank = allowed_to_vote[msg.sender];
         require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller || isbank==true, "not authorized");	    
         return docu_hashs[_user];
 	}
     
-    
+    /*
+	*  @dev let the parties check the money in the contract
+    */
     function check_Contract_Balance() public view returns(uint){
         
         /* Give to each of the parties involved the possibility of checking the contract balance */
@@ -479,6 +486,7 @@ contract LetterCredit is Ballot {
 	// ----------------------------------------- End -----------------------------------------           //
 	
     contract evilGenius {
+        
         /*
     	*  @dev makes a payment to this address fail
         */
