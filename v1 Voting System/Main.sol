@@ -396,34 +396,6 @@ contract LetterCredit is Ballot {
     }
     
     	// ----------------------------------------- Mixed Domain -----------------------------------------  //
-
-    function getStatus() external view returns (contract_status) {
-        return status;
-    }
-    
-    function getTimeStatus() external view returns (contract_time) {
-        return time;
-    }
-        
-    function getVotingTimeStatus() external view returns (voting_time) {
-        return v_time;
-    }
-    
-    function getBuyer() external view returns (address) {
-        return buyer;
-    }
-    
-    function getSeller() external view returns (address) {
-        return seller;        
-    }
-    
-    function getFintech() external view returns (address) {
-        return fintech;
-    }
-    
-    function getRightToVote(address voter) external view returns (bool) {
-        return(allowed_to_vote[voter]);    
-    }
     
     /*
     * @dev internally called function to settle balances among the parties, banks included.
@@ -500,7 +472,36 @@ contract LetterCredit is Ballot {
         return address(this).balance;
     }
     
+    /* @dev the following are view functions implemented only for the sake of
+     *       a more informative, debuggable nicer front-end integration */
+     
+        function getStatus() external view returns (contract_status) {
+        return status;
+    }
     
+    function getTimeStatus() external view returns (contract_time) {
+        return time;
+    }
+        
+    function getVotingTimeStatus() external view returns (voting_time) {
+        return v_time;
+    }
+    
+    function getBuyer() external view returns (address) {
+        return buyer;
+    }
+    
+    function getSeller() external view returns (address) {
+        return seller;        
+    }
+    
+    function getFintech() external view returns (address) {
+        return fintech;
+    }
+    
+    function getRightToVote(address voter) external view returns (bool) {
+        return(allowed_to_vote[voter]);    
+    }
 
 }
 	// ----------------------------------------- End -----------------------------------------           //
