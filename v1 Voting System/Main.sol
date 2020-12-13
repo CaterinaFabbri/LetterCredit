@@ -404,6 +404,26 @@ contract LetterCredit is Ballot {
     function getTimeStatus() external view returns (contract_time) {
         return time;
     }
+        
+    function getVotingTimeStatus() external view returns (voting_time) {
+        return v_time;
+    }
+    
+    function getBuyer() external view returns (address) {
+        return buyer;
+    }
+    
+    function getSeller() external view returns (address) {
+        return seller;        
+    }
+    
+    function getFintech() external view returns (address) {
+        return fintech;
+    }
+    
+    function getRightToVote(address voter) external view returns (bool) {
+        return(allowed_to_vote[voter]);    
+    }
     
     /*
     * @dev internally called function to settle balances among the parties, banks included.
