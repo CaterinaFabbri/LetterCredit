@@ -1,17 +1,17 @@
 # LetterCredit
 
-The aim of our project is to first digitalize and then to boldy innovate the letter of credit process. In order to do this, we prototyped three slightly different implementations, each adding complexity to the previous one 
+The aim of our project is to first digitalize and then to boldy innovate the letter of credit process. In order to do this, we prototyped three different implementations with increasing complexity.
 
 ## Repository Structure
 The three folders **v0 Central Fintech**, **v1 Voting System** and **v2 Voting Ecosystem** contain a Solidity prototype and a .md file briefly describing its most relevant aspects and the main differences with regard to the previous prototype. 
 
 
-The **General Documents** folder contains: `Log.md`, illustrating our general workflow, `General Idea.txt`, briefly describing some theoretical aspects of the ideas, `Pitfalls and Safety checks.txt`, describing some security considerations and checks we performed, as well as some aspects that can be improved
+The **General Documents** folder contains: `Log.md`, illustrating our general workflow, `General Idea.txt`, briefly describing some theoretical aspects of the ideas, `Pitfalls and Safety checks.txt`, describing some security considerations and checks we performed, as well as some aspects that can be improved.
 
 ## General rules for contract deployment
 
-In the following image we describe the pipeline and workflow of our most basic prototype, the **Central Fintech** one. While the other prototypes add complexity, the general framework reamins the same. <br/>
-More detailed instructions and information are specified in each relevant folder, highlighting the differences among implementations
+In the following image we describe the pipeline and workflow of our most basic prototype, the **Central Fintech** one. While the other prototypes add complexity, the general framework remains the same. <br/>
+More detailed instructions and information are specified in each relevant folder, highlighting the differences among implementations.
 
 
 ![plot](https://github.com/CaterinaFabbri/LetterCredit/blob/main/Documents%20and%20Images/Basic%20Structure.jpg)
