@@ -32,7 +32,13 @@ Another consideration to make is that the fintech has a central role in all impl
 >
 >  - The latter thing can only happen after balance is set, so we can rule it out. 
 >
->  - The former thing isn't relevant, as the buyer has to upload all the money due before the seller uploads his final document. Indeed, if he doesn't do so, the seller can see this and avoid proceding, and the buyer loses the defect_fee. If the buyer uploads money after the balance is set, it's a mistake of his since he has no reason to do so. Still, the fintech can selfdestruct the contract and eventually refund him
+>  - The former thing isn't relevant, as the buyer has to upload all the money due before the seller uploads his final document. Indeed, if he doesn't do so, the seller can see this and avoid proceding, and the buyer loses the defect_fee. If the buyer uploads money after the balance is set, it's a mistake of his since he has no reason to do so. Still, the fintech can selfdestruct the contract and eventually refund him 
+
+- What if no bank votes?
+> The `checkCompliance()` will revert because it will not be able to set the balances of the banks due to a 'division by 0 error'. This is fine as in this edge case we wouldn't want to actually set compliant or not compliant status; instead the fintech can extend the deadline for voting or it can self destruct the contract and consider the operation a failure, refunding the buyer and compensating the seller
+
+- What if there is a draw in the voting?
+> Then the status is set to not-compliant. We decided to do so because if half of the bansk don't deem the document compliant, then it's safer to assume so. The buyer can always decide to waive the discrepancies, but it should be up to him in this edge case. It would be hard to try to prevent this edge-case from arising, as, even by using 3 super voters, it can happen that 1 of them doesn't vote on a specific document of a specific Letter of credit contract
 
 
 note: some choices were made for the sake of a better front-end integration, e.g. the use of `receive()` or some view functions 
