@@ -17,7 +17,7 @@ import "https://github.com/CaterinaFabbri/LetterCredit/blob/main/Smart%20Contrac
 */
 contract Variables {
     
-    // -----------------------------------------  Ballot Variables  ----------------------------------------- //
+    // --------------  Ballot Variables  -------------- //
     
     // keep track of the contract status
     enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, 
@@ -51,7 +51,7 @@ contract Variables {
     address[] public voter_addresses;
     address[] public winning_address;
 
-    // -----------------------------------------  LetterCredit Variables  ----------------------------------------- //
+    // --------------  LetterCredit Variables  -------------- //
     
     
     // define the addresses of the parties involved
@@ -84,7 +84,11 @@ contract Variables {
     uint compliance_fee; 
 }
 
+/*********************************************************************************************************************************************************/
 
+/*
+* @dev manages the voting pattern in a specific LetterCredit contract 
+*/
 contract Ballot is Ownable, Events, Variables {
     
     using SafeMath for uint;
@@ -164,6 +168,9 @@ contract Ballot is Ownable, Events, Variables {
 
 /*********************************************************************************************************************************************************/
 
+/*
+* @dev main contract
+*/
 contract LetterCredit is Ballot {
     
     using SafeMath for uint;
