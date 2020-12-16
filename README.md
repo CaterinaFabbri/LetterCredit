@@ -25,4 +25,4 @@ The website makes use of **conditional rendering**, so each user has access to a
 The workflow is pretty much as in Remix. To upload a document, click on the logo and an IPFS hash will automatically be created. To actually upload the hash into the smart contract, it suffices to click `Buyer Upload` (specifying as argument only the number of days the seller will have in order to upload the documents) or `Seller Upload`.
 
 
-[Here](https://github.com/yenerk95/eth-app) is the Github repo relative to the website
+[Here](https://github.com/yenerk95/eth-app-final) is the Github repo relative to the website
