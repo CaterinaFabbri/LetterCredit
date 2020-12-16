@@ -341,8 +341,6 @@ contract LetterCredit is Ballot {
             
         	status = contract_status.DOC_DEFECT;
         	
-        	// split the money owned to the fintech and the buyer
-        	setBalances(defect_fee, buyer);
         	
             }
         
