@@ -184,9 +184,8 @@ contract LetterCredit is Ownable, Events{
         else {
 
 	    	status = contract_status.DOC_REJECTED; //The buyer decides to terminate the contract
-
-            // split the money owed to the fintech and the buyer
-            setBalances(defect_fee, buyer); }
+		
+	}
             
         emit BuyerDecision(waive);
         }
