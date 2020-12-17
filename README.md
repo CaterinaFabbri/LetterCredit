@@ -1,16 +1,24 @@
 # LetterCredit
 
-The aim of our project is to first digitalize and then to boldy innovate the letter of credit process. In order to do this, we prototyped three different implementations with increasing complexity.
+The aim of our project is to first digitalize and then to boldy innovate the letter of credit process. In order to do this, we prototyped three different implementations with increasing complexity. \
+Very briefly, in **v0 Central Fintech** we prototype a simple digitalization of the process, taking advantage of the blockchain enforcement. \
+In **v1 Voting System** we add to the implementation a network of banks, which needs to express opinions on the compliance of the process. \
+In **v2 Voting Ecosystem** we test the scalability of v1, removing a couple of restrictive assumptions.
 
 ## Repository Structure
-The **Smart Contracts** folder contains three sub-folders. Each of them contain a Solidity prototype, which builds up on the previous one, and a .md file briefly describing  most relevant aspects and the main differences with regard to the previous prototype. 
+The **Smart Contracts** folder contains four sub-folders. \
+Three of them contain a Solidity prototype, which builds up on the previous one, and a .md file briefly describing  most relevant aspects and the main differences with regard to the previous prototype. \
+The other subfolder contains the contracts common contracts which are imported by all three implementations.
 
 
-The **General Documents** folder contains: `Log.md`, illustrating our general workflow, `General Idea.txt`, briefly describing some theoretical aspects of the ideas, `Pitfalls and Safety checks.txt`, describing some security considerations and checks we performed, as well as some aspects that can be improved.
+The **General Documents** folder contains: \
+`Log.md`, illustrating our general workflow, \
+`General Idea.txt`, briefly describing some theoretical aspects of the ideas, \
+`Pitfalls and Safety checks.txt`, describing some security considerations and checks we performed.
 
 ## General rules for contract deployment
 
-In the following image we describe the pipeline and workflow of our most basic prototype, the **Central Fintech** one. While the other prototypes add complexity, the general framework remains the same. <br/>
+In the following image we describe the pipeline and workflow of our most basic prototype, the **v0 Central Fintech** one. While the other prototypes add complexity, the general framework remains the same. <br/>
 More detailed instructions and information are specified in each relevant folder, highlighting the differences among implementations.
 
 
@@ -18,7 +26,7 @@ More detailed instructions and information are specified in each relevant folder
 
 
 ## How to use the front-end
-The v1 implementation, we created a [website](https://eth-app-final.yenerk95.vercel.app/) which allows to use the contract functionalities outside of Remix, through a Metamask integration. <br/>
+For the v1 implementation, we created a [website](https://eth-app-final.yenerk95.vercel.app/) which allows to use the contract functionalities outside of Remix, through a Metamask integration. <br/>
 
 In order to use the website, one needs to first deploy the contract in Remix, using Injected Web3 and a Metamask Testnet. Then, the contract address shall be copypasted into the form on the initial webpage.  <br/>
 The website makes use of **conditional rendering**, so each user has access to a different page. To actually visualize the page of the current metamask account, it suffices to press again the set smart contract button.  <br/>
