@@ -93,6 +93,9 @@ contract Variables {
     // new: mapping to avoid checking compliance on not uploaded docs
     mapping (uint => bool) need_to_check_compl;
     
+    // keep track of the compliances checked
+    uint num_compl_checked;
+    
     // define deadline, and extension (set by the buyer)
     uint deadline;
 
@@ -372,6 +375,7 @@ contract LetterCredit is Ballot {
         
         require(need_to_check_compl[num_document] == true, "Already setted compl., or doc not yet uploaded");
         need_to_check_compl[num_document] = false;
+        num_compl_checked += 1;
         
 // No discrepancies scenario
         if (winningProposal(num_document)==1) {
@@ -389,8 +393,13 @@ contract LetterCredit is Ballot {
 // let the voting deadline expire (discussed in description.md)
         document[num_document].voting_deadline = 0;
         
+// push 'winner' banks into the relative array, so they'll get reward
+        voteAccordingMajority(num_document);
+        
 // eventually set overall compliance 
-        if (status == contract_status.SELLER_UPLOADED) {
+        if (status == contract_status.SELLER_UPLOADED
+        &&
+           num_compl_checked == num_docs_uploaded) {
             
                 if (uncompl_docs > 0){
                     // set doc to not compliant and let the buyer decide what to do
@@ -410,28 +419,6 @@ contract LetterCredit is Ballot {
         }
     }
     
-    /*
-    * see description.md
-	function updateBankBalances(uint _num_document) internal {
-	    // here we let banks take 0.5% of the total money at each voting
-	    
-	    // be sure to clear array before pushing into it 
-	    delete winning_address;
-	    assert(winning_address.length == 0);
-	    // update the winning_address array
-	    voteAccordingMajority(_num_document);
-	    
-	    // set the banks reward
-	    uint contract_money = address(this).balance;
-	    uint banks_money = contract_money.mul(5)/100;
-	    
-	    transfer the money into an escrow contract, from which the banks can pull it.
-	    This way this function doesn't interfere with setBalances(), which can be called
-	    only when the current function is no longer callable
-        }
-	}
-    */
-    
 	/*
 	*  @dev selfdestruct the contract and give all the money 
     *  to the fintech (nice fail-safe mechanism but trust required) 
@@ -442,24 +429,36 @@ contract LetterCredit is Ballot {
     
     	// ----------------------------------------- Mixed Domain -----------------------------------------  //
     
-    /*
+	/*
     * @dev internally called function to settle balances among the parties, banks included.
     *      Called in both cases of compliance and no compliance. 
     * @params commission_fee % of total money in the contract taken by the fintech
     *         user_payable address of user who will receive the money minus the fee
     */
-	function setBalances(uint commission_fee, address user_payable) internal {
+	function setBalances(uint commission_fee, address user_payable)  internal {
 	    
 	    uint contract_money = address(this).balance;
 	    require(contract_money>0, "There is no money in this contract");
 	    
         uint commission;
+        uint fintech_money;
         commission = contract_money.mul(commission_fee)/100; 
         
         balance[user_payable] = (contract_money - commission);
-        // the fintech takes its commission, banks are payed on each document
-	    balance[fintech] = commission;
+        // 40% of the commission fee is of the fintech 
+        fintech_money = commission.mul(40)/100;
+	    balance[fintech] = fintech_money;
+	    
+	    // And the 60% of the commission fee belongs to those that voted according
+	    // to the majority, across all votes (it's an array with repetitions)
+	    uint banks_money = (commission - fintech_money).div(winning_address.length);
+	    
+	    for(uint i=0; i<winning_address.length; i++){
+	        balance[winning_address[i]] += banks_money;
         }
+	}    
+	
+	
 	
 	/*
 	*  @dev let a user withdraw his due money
@@ -502,6 +501,13 @@ contract LetterCredit is Ballot {
         require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller || isbank==true, "not authorized");	    
         return seller_documents[num_document];
 	}
+	
+    function seeDocCompliances(uint num_document) public view returns(bool doc_compliance){
+        assert(num_document <= num_docs_uploaded );  
+        require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller,  "not authorized");
+        require(need_to_check_compl[num_document] == false, "Can't check compliance on a document not compliance checked");
+        return compliances[num_document];
+    }
     
     /*
 	*  @dev let the parties check the money in the contract
@@ -513,10 +519,9 @@ contract LetterCredit is Ballot {
         return address(this).balance;
     }
     
-    function seeDocCompliances(uint num_document) public view returns(bool doc_compliance){
-        require(msg.sender == fintech || msg.sender == buyer || msg.sender == seller,  "not authorized");
-        require(num_document <= num_docs_uploaded, "Can't check compliance on a document not yet uploaded");  
-        return compliances[num_document];
+    
+    function check_MyBalance() public view returns(uint){
+        return balance[msg.sender];
     }
 }
 	// ----------------------------------------- End -----------------------------------------           //
