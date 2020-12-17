@@ -9,42 +9,8 @@ pragma solidity 0.7.5;
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 
-/*
-* @dev events will allow each user to see what's going on, while preserving privacy as much as possible
-*/
-contract Events {
-    
-    // -----------------------------------------  Ballot Events  ----------------------------------------- //
-    
-    // signal that fintech gives the right to vote    
-    event NewVoter(address voter_address);
-    // signal that fintech removes the right to vote
-    event RemovedVoter(address voter_address);
+import "https://github.com/CaterinaFabbri/LetterCredit/blob/main/Smart%20Contracts/Importable%20Contracts/events.sol";
 
-    // -----------------------------------------  LetterCredit Events  ----------------------------------------- //
-
-    // signal the start of the contract
-    event ContractDeployed(uint deadline);
-    
-    // signal that the buyer has uploaded some money
-    event BuyerInstallment();
-    
-	// signal that the seller has uploaded the document
-	event SellerUpload();
-	
-    // signal an extension of the deadline
-    event Deadline_extension(uint deadline);
-    
-	// signal that the Fintech has evaluated compliance of seller's document
-	event ComplianceChecked();
-	
-	// signal that the buyer has decided either to waive or to end the transaction 
-	event BuyerDecision(bool waive);
-	
-    // signal that someone has withdrawn money
-    event Withdrawn(address withdrawer);
-    
-}
 
 /*
 * @dev put variables here to ease the reading. Is this safe?
@@ -55,8 +21,8 @@ contract Variables {
     
     // keep track of the contract status
     enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED, 
-                            DOC_OK, DOC_DEFECT,DOC_REJECTED, 
-                            MONEY_SENT} contract_status status;
+                            DOC_OK, DOC_DEFECT,DOC_REJECTED}
+                            contract_status status;
     
     // keep track of the voting deadline
     enum voting_time {ON_TIME, OUT_OF_TIME} voting_time v_time;
@@ -69,28 +35,18 @@ contract Variables {
     }
     mapping(address => Voter)  voters;
     
-
-    // keep track of the number of accumulated votes for each proposal name
-    struct Proposal {
-        string name;   // short name (up to 32 bytes)
-        uint voteCount; 
-    }
-    Proposal[] public proposals;
-    
+    uint votes_for_no_compliance;
+    uint votes_for_compliance;
 
     // voting deadline: set by the fintech (days), and starts when the seller 
     // uploads the documents.
-    uint public v_deadline;
-    
-    // records when the seller uploads the documents
-    uint _UploadTime;
+    uint v_deadline;
     
     // true if the fintech has given right to vote
     mapping(address => bool)  allowed_to_vote;
     
     address[] voter_addresses;
-    
-
+    address[] winning_address;
 
     // -----------------------------------------  LetterCredit Variables  ----------------------------------------- //
     
@@ -98,17 +54,14 @@ contract Variables {
     // define the addresses of the parties involved
     address payable public buyer;
     address payable public seller;
-    address payable public fintech;
+    // we don't set it to public as there is already a getter for 'owner'
+    address payable        fintech;
     
     // checks whether the seller is on time to upload the documents
     enum contract_time {ON_TIME, OUT_OF_TIME} contract_time time;
     
     // define deadline, and extension (set by the buyer)
     uint public deadline;
-    uint extension;
-    
-    // in case the buyer wants to waive discrepancies, it is set to true
-    bool waive; 
 
     // records the balance for each player
     mapping(address => uint) balance;
@@ -121,27 +74,12 @@ contract Variables {
     // and of no compliance
     uint defect_fee; 
     uint compliance_fee; 
-    address[] winning_address;
-    
 }
 
 
 contract Ballot is Ownable, Events, Variables {
     
     using SafeMath for uint;
-    
-    constructor() {
-        
-        proposals.push(Proposal({
-            name: "Not Compliant",
-            voteCount: 0
-            }));   
-        proposals.push(Proposal({
-            name: "Compliant",
-            voteCount: 0
-            }));
-    }
-    
 
     function giveRightToVote(address voter) public onlyOwner {
         require(allowed_to_vote[voter] == false , "The user is already allowed to vote");
@@ -158,42 +96,48 @@ contract Ballot is Ownable, Events, Variables {
     }
     
     function VotingEndTime(uint v_number_of_days) external onlyOwner {
-        v_deadline = _UploadTime.add(v_number_of_days * 1 days);
+        v_deadline = block.timestamp.add(v_number_of_days * 1 days);
         //v_deadline = _UploadTime.add(v_number_of_days); //this is just in seconds to test whether it works fine
+        
         v_time = voting_time.ON_TIME;
     }
     
     /* let a bank vote, modifying its Voter struct accordingly */
     function vote(uint proposal) public {
+        
         require(status == contract_status.SELLER_UPLOADED, "Can't vote on a document not yet uploaded");
         bool isbank = allowed_to_vote[msg.sender];
         require(isbank == true, "must be allowed to vote");
         Voter storage sender = voters[msg.sender];
         require(!sender.voted, "Already voted.");
-        
         if (block.timestamp >= v_deadline) {
 	        
 	        v_time = voting_time.OUT_OF_TIME;
 	    }
-	    
 	    require(v_time == voting_time.ON_TIME, "Invalid status, status is not ON_TIME");
 	    
         sender.voted = true;
         sender.vote = proposal;
-        proposals[proposal].voteCount ++;
+        
+        // use the vote to increase the appropriate counter
+        if (proposal == 0){
+            votes_for_no_compliance  +=1;}
+        else {
+            if (proposal == 1){
+                votes_for_compliance +=1;}
+        }
         voter_addresses.push(msg.sender);
     }
 
     function winningProposal() internal view returns (uint winningProposal_){
-        // Before it was OnlyOwner, but it is called also inside voteAccordingMajority
-        // ( inside waiveDiscrepancies)
-        uint winningVoteCount = 0;
-        for (uint p = 0; p < proposals.length; p++) {
-            if (proposals[p].voteCount > winningVoteCount) {
-                winningVoteCount = proposals[p].voteCount;
-                winningProposal_ = p;
-            }
-        }
+
+        if (votes_for_no_compliance>=votes_for_compliance){
+            winningProposal_ = 0;}
+        else {
+            winningProposal_ = 1;}
+            
+        return winningProposal_;
+        
     }
         
     function voteAccordingMajority() internal  {
@@ -226,12 +170,7 @@ contract LetterCredit is Ballot {
         buyer = _buyer;
         seller = _seller;
         
-        
         status = contract_status.ON;
-        
-        balance[buyer] = 0;
-        balance[seller] = 0;
-        balance[fintech] = 0;
         
         compliance_fee = 20; // in %
         defect_fee = 1;
@@ -258,6 +197,14 @@ contract LetterCredit is Ballot {
     */
     receive() external payable onlyBuyer{
         emit BuyerInstallment();}
+        
+    /*
+    * @dev allow the buyer to upload money at any time. 
+    *      Redundant but easier than the above if using Remix
+    */
+    function Ether_Upload() payable public onlyBuyer{ 
+        emit BuyerInstallment();
+    }
     
     /*
     * @dev used by the buyer to set the deadline. Called by prev. function.
@@ -295,15 +242,14 @@ contract LetterCredit is Ballot {
 	* @params _extension num of additional days the seller will have 
 	*/
 	function ExtendTime(uint _extension) external onlyBuyer {
-        extension = _extension;
-        deadline = block.timestamp.add(extension * 1 days);
+        deadline = deadline.add(_extension * 1 days);
         // deadline = block.timestamp.add(extension);
 
         time = contract_time.ON_TIME;
         emit Deadline_extension(deadline);
 	}
     
-	    /*
+	/*
     * @dev allows the buyer to decide whether to waive the discrepancies or terminate the
     * contract, in case the documents don't comply.
     * @params _waive false to terminate transaction, true to waive discrepancies
@@ -311,9 +257,7 @@ contract LetterCredit is Ballot {
     function waiveDiscrepancies(bool _waive) public onlyBuyer {
         require(status == contract_status.DOC_DEFECT, "Can only use this function if there are discrepancies");
 
-        waive = _waive;
-
-        if (waive) {
+        if (_waive) {
 
 		    status = contract_status.DOC_OK; //The buyer decides to waive the discrepancies
 
@@ -327,7 +271,7 @@ contract LetterCredit is Ballot {
             // split the money owed to the fintech and the buyer
             setBalances(defect_fee, buyer); }
             
-        emit BuyerDecision(waive);
+        emit BuyerDecision(_waive);
         }
 
 	// ----------------------------------------- Seller Domain -----------------------------------------  //
@@ -348,7 +292,6 @@ contract LetterCredit is Ballot {
 		
 	    docu_hashs[seller] = hash_seller;
 	    status = contract_status.SELLER_UPLOADED;
-	    _UploadTime = block.timestamp;
 
 	    emit SellerUpload();
 	}
@@ -374,12 +317,7 @@ contract LetterCredit is Ballot {
         }
         	
     	// discrepancies scenario 
-    	else {
-            
-        	status = contract_status.DOC_DEFECT;
-        	
-        	
-            }
+    	else { status = contract_status.DOC_DEFECT;            }
         
         emit ComplianceChecked();    
 
@@ -432,6 +370,7 @@ contract LetterCredit is Ballot {
         // can use openzeppelin or https://github.com/kieranelby/KingOfTheEtherThrone/blob/v1.0/contracts/KingOfTheEtherThrone.sol
         // to make it more complex and safe, e.g. managing the amount of gas used
         
+        require(address(this).balance > 0, "no money in this contract");
         // can only withdraw funds when the contract is resolved
         require(status == contract_status.DOC_REJECTED || status == contract_status.DOC_OK , "Invalid status");
         
@@ -473,7 +412,7 @@ contract LetterCredit is Ballot {
     /* @dev the following are view functions implemented only for the sake of
      *       a more informative, debuggable nicer front-end integration */
      
-        function getStatus() external view returns (contract_status) {
+    function getStatus() external view returns (contract_status) {
         return status;
     }
     
@@ -503,13 +442,3 @@ contract LetterCredit is Ballot {
 
 }
 	// ----------------------------------------- End -----------------------------------------           //
-	
-    contract evilGenius {
-        
-        /*
-    	*  @dev makes a payment to this address fail
-        */
-        function revertBonanza() public payable {
-            revert("ihih evil genius at it again!");
-        }
-    }
