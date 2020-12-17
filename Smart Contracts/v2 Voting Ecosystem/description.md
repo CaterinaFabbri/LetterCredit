@@ -7,7 +7,7 @@ Furthermore, here we remove the assumption that only one document needs to be up
 It needs to be noted that a lot of complicancies are added by these changes, thus this implementation, even more so than the others, is to be considered as prototypical, as it's probably vulnerable to some sophisticated malicious strategies**
 
 
-**note on convention: a lot of functions refer to a specific document, which is inputted as argument via *num_document*, where 0 <= *num_document* < *num_docs_to_upload*. Thus, 0 stands for the first document.
+**note on convention: a lot of functions refer to a specific document, which is inputted as argument via *num_document*, where 0 <= *num_document* < *num_docs_to_upload*. Thus, 0 stands for the first document.**
 
 ### steps:
 
