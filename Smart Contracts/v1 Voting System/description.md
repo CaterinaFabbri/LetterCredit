@@ -12,7 +12,7 @@ The buyer can upload the money in the smart contract taking advantage of the `re
 
 Then, switch to the seller and use the function `SellerUpload()` to upload the document required by the buyer. To simplify, we assume that only a document needs to be uploaded.
 
-**The bank shall set a deadline for voting using `VotingEndTime()`. We considered setting it automatically, using a fixed amount of time, but we think it should depend on the complexity of the task.** 
+**The fintech shall set a deadline for voting using `VotingEndTime()`. We considered setting it automatically, using a fixed amount of time, but we think it should depend on the complexity of the task.** 
 
 **Banks can express their evaluation on the compliance of the document using `vote()`. \
 Each bank who voted in line with the majority will receive an equal reward, while the others will obtain None. \
