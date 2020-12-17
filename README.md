@@ -3,7 +3,7 @@
 The aim of our project is to first digitalize and then to boldy innovate the letter of credit process. In order to do this, we prototyped three different implementations with increasing complexity.
 
 ## Repository Structure
-The three folders **v0 Central Fintech**, **v1 Voting System** and **v2 Voting Ecosystem** contain a Solidity prototype and a .md file briefly describing its most relevant aspects and the main differences with regard to the previous prototype. 
+The **Smart Contracts** folder contains three sub-folders. Each of them contain a Solidity prototype, which builds up on the previous one, and a .md file briefly describing  most relevant aspects and the main differences with regard to the previous prototype. 
 
 
 The **General Documents** folder contains: `Log.md`, illustrating our general workflow, `General Idea.txt`, briefly describing some theoretical aspects of the ideas, `Pitfalls and Safety checks.txt`, describing some security considerations and checks we performed, as well as some aspects that can be improved.
