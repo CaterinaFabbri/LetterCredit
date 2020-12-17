@@ -38,8 +38,8 @@ contract Variables {
     
     // keep track of the contract status
     enum contract_status  {ON, BUYER_UPLOADED, SELLER_UPLOADED,
-                           DOC_OK, DOC_DEFECT,DOC_REJECTED,
-                           MONEY_SENT} contract_status status;
+                           DOC_OK, DOC_DEFECT,DOC_REJECTED} 
+			   contract_status status;
     
     
     struct Voter {
