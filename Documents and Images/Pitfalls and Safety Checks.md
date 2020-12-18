@@ -9,11 +9,11 @@ Another consideration to make is that the fintech has a central role in all impl
 > Overall, it would be relatively easy to let the buyer have another option when the contract isn't compliant: he could also reset the contract status as it was before the seller uploaded its documents, so he has a chance do upload them again. Practically speaking, there are a number of ways to do this, e.g. by deleting docu_hashs[seller]; resetting contract status to buyer.uploaded and resetting the booleans about having voted to false
 
 - Whenever it wants, the fintech can add addresses allowed to vote.
-> This means that it can do so also when voting is happening on some documents. It also means that it can add several times the same users. 
+> This means that it can do so also when voting is happening on some documents. It also means that it can add several times the same users using different addresses. 
 >
 > To prevent the latter, there can be simple mechanisms like letting each added user (bank) provide a formal document which allows to identify it, possibly adding a section also on its website for an easy double-check. More experimental solutions could let the buyer and seller choose - before the seller starts uploading his documents - whether there are some banks which that they want to prevent from voting on their documents; though we don't find many reasons for adding such a complicacy.
 >
-> As for the former, it would be easy for implementations v0 and v1 to add a require to `giveRightToVote()` and `removeRightToVote()`, specifying that contract status should not be SELLER_UPLOADED (it is the status when voting happens). In implementation v2 this would be trickier, maybe the best option would be to add a variable in the Voter struct, to store the date at which each bank is added. A time stamp should also be stored in a variable in LetterCredit, registering the time at which the seller uploads its first document. Then, in `cast_vote()`, require that the former time stamp isn't greater than than the latter
+> As for the former, it would be easy for implementations v0 and v1 to add a require to `giveRightToVote()` and `removeRightToVote()`, specifying that contract status should not be SELLER_UPLOADED (it is the status when voting happens). In implementation v2 this would be trickier, maybe the best option would be to add a variable in the Voter struct, to store the date at which each bank is added. A time stamp should also be stored in a variable in LetterCredit, registering the time at which the seller uploads each document. Then, in `vote()`, require that the former time stamp isn't greater than than the latter.
 
 - The fintech can self-destruct the contract, getting all the money.
 > It means that some degree of trust is required towards the fintech, but it can be a very useful fall-back mechanism
@@ -26,7 +26,7 @@ Another consideration to make is that the fintech has a central role in all impl
 > Finally, it would be easy to set a deadline also for this. We didn't do so to avoid making the code too cumbersome
 
 - Can you abuse the `SetBalance()` function?
-> Balances are set only once. **Reentrancy** isn't effective, as balances are set to the same **invariant amount** (the contract's money) even in case of double call.
+> Balances are set only once. **Reentrancy** isn't effective, as balances are set to the same **invariant amount** (the contract's money) even in case of double call (note: this is no longer true in v2, as banks balances can increase; still, it isn't possible to call the function more than once).
 >
 > We say that the amount is invariant because it can change only in **2 cases**: when the buyer uploads money, or when someone withdraws money. 
 >
