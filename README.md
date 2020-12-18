@@ -1,20 +1,27 @@
 # LetterCredit
 
-The aim of our project is to first digitalize and then to boldy innovate the letter of credit process. In order to do this, we prototyped three different implementations with increasing complexity. \
+The aim of our project is to first digitalize and then to boldy innovate the letter of credit process. Our general vision is that the banks no longer make the payment for the buyer, exposing themselves to risk in order to add guarantees for the seller. \
+Instead, banks should only check the compliance of the seller's documents, acting as independent third-parties, while the payment enforcing should be granted by the smart-contract. \
+We forsee advantages in terms of digitalization, risk (and fees) reduction, democraticization of the process, and greater access to the service.
+
+In order to do this, we prototyped three different implementations with increasing complexity. \
 Very briefly, in **v0 Central Fintech** we prototype a simple digitalization of the process, taking advantage of the blockchain enforcement. \
 In **v1 Voting System** we add to the implementation a network of banks, which needs to express opinions on the compliance of the process. \
 In **v2 Voting Ecosystem** we test the scalability of v1, removing a couple of restrictive assumptions.
 
-## Repository Structure
-The **Smart Contracts** folder contains four sub-folders. \
-Three of them contain a Solidity prototype, which builds up on the previous one, and a .md file briefly describing  most relevant aspects and the main differences with regard to the previous prototype. \
-The other subfolder contains the contracts common contracts which are imported by all three implementations.
 
+
+## Repository Structure
 
 The **General Documents** folder contains: \
-`Log.md`, illustrating our general workflow, \
-`General Idea.txt`, briefly describing some theoretical aspects of the ideas, \
-`Pitfalls and Safety checks.txt`, describing some security considerations and checks we performed.
+`Log.md`, it illustrates the workflow throughout our meetings; \
+`General Idea.txt`, it is the file we used to brainstorm remotely, and it briefly describes theoretical aspects of our ideas; \
+`Pitfalls and Safety checks.txt`, it describes some security considerations and checks that we performed.
+
+The **Smart Contracts** folder contains four sub-folders. \
+Three of them contain a Solidity prototype which builds up on the previous one, and a .md file briefly describing the process and the main differences (highlighted) with regard to the previous prototype. \
+The other subfolder contains the common contracts which are imported by all three implementations.
+
 
 ## General rules for contract deployment
 
